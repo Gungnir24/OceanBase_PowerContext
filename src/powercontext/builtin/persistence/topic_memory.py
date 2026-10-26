@@ -40,6 +40,7 @@ from powercontext.builtin.artifacts.topic_memory import (
     TopicMemoryDraft,
     TopicMemoryProjection,
     TopicMemoryProjectionError,
+    TopicMemorySearchChannels,
     TopicMemorySearchMode,
     TopicMemorySearchRequest,
     TopicMemorySearchResult,
@@ -379,6 +380,7 @@ class TopicMemoryRepository:
             .where(
                 TOPIC_MEMORY_ACTIVE_TOPICS_TABLE.c.scope_id == scope_id,
                 TOPIC_MEMORY_ACTIVE_TOPICS_TABLE.c.family == TopicMemory.family,
+                ARTIFACT_HEADS_TABLE.c.lifecycle_state == "active",
             )
         )
         if tag_filter is not None:
@@ -487,6 +489,7 @@ class TopicMemoryRepository:
             admission=admission,
         )
         channels = await self.index.search(connection, scope_id, request)
+        channels = await self._eligible_channels(connection, scope_id, channels)
         await self._check_retrieval_shape(connection)
         outcome = _fuse_topic_memory_rankings(query, channels, limit, mode=used_mode, admission=admission)
         return TopicMemorySearchResult(
@@ -499,6 +502,43 @@ class TopicMemoryRepository:
                 admitted=outcome.admitted,
                 rejected=outcome.rejected,
             ),
+        )
+
+    async def _eligible_channels(
+        self,
+        connection: AsyncConnection,
+        scope_id: str,
+        channels: TopicMemorySearchChannels,
+    ) -> TopicMemorySearchChannels:
+        """Apply governance to every native retrieval channel before fusion."""
+        names = ("topic_fts", "topic_vector", "detail_fts", "detail_vector")
+        ids = {hit.artifact_ref.artifact_id for name in names for hit in getattr(channels, name)}
+        if not ids:
+            return channels
+        active = set(
+            (
+                await connection.execute(
+                    select(
+                        ARTIFACT_HEADS_TABLE.c.artifact_id,
+                        ARTIFACT_HEADS_TABLE.c.revision,
+                    ).where(
+                        ARTIFACT_HEADS_TABLE.c.scope_id == scope_id,
+                        ARTIFACT_HEADS_TABLE.c.family == TopicMemory.family,
+                        ARTIFACT_HEADS_TABLE.c.artifact_id.in_(ids),
+                        ARTIFACT_HEADS_TABLE.c.lifecycle_state == "active",
+                    )
+                )
+            ).tuples()
+        )
+        return channels.model_copy(
+            update={
+                name: tuple(
+                    hit
+                    for hit in getattr(channels, name)
+                    if (hit.artifact_ref.artifact_id, hit.artifact_ref.revision) in active
+                )
+                for name in names
+            }
         )
 
     async def _activate(
