@@ -28,6 +28,12 @@ from powercontext.builtin.artifacts.memory.models import MemoryCitation, MemoryH
 from powercontext.builtin.artifacts.profile.models import Profile
 from powercontext.builtin.artifacts.topic_memory import TopicMemory, TopicMemorySearchHit
 from powercontext.builtin.runtime.errors import PreparedContextInvariantError
+from powercontext.builtin.runtime.evidence_selection import (
+    EvidenceDocument,
+    MemoryEvidenceFragment,
+    render_evidence,
+    select_evidence,
+)
 from powercontext.builtin.runtime.models import PrepareContextRequest, PreparedContext
 from powercontext.builtin.runtime.prepared_code import (
     CodeEvidenceRef,
@@ -106,6 +112,7 @@ class PreparedContextBuild:
     origins: tuple[PreparedContextOrigin, ...]
     omissions: PreparedContextOmissions = PreparedContextOmissions()
     code_origins: tuple[CodeEvidenceRef, ...] = ()
+    fragments: tuple[MemoryEvidenceFragment, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -146,7 +153,7 @@ class PreparedProfileCandidate:
 
 
 class PreparedContextBuilder:
-    """Select and render final context without I/O, persistence, or reranking."""
+    """Select and render final context without I/O or persistence."""
 
     memory_candidate_limit = 16
     topic_memory_candidate_limit = 8
@@ -211,6 +218,8 @@ class PreparedContextBuilder:
         profile_candidates: Sequence[PreparedProfileCandidate] = (),
         code_candidates: Sequence[PreparedCodeCandidate] = (),
     ) -> PreparedContextBuild:
+        if request.evidence_selection:
+            return self._build_evidence(request, current_scope_id, memory_candidates)
         if request.include_code:
 
             def historical(history_request: PrepareContextRequest, entries: int) -> PreparedContextBuild:
@@ -256,6 +265,64 @@ class PreparedContextBuilder:
             omissions=omissions,
         )
 
+    def _evidence_documents(
+        self,
+        current_scope_id: str | None,
+        candidates: Sequence[PreparedMemoryCandidates],
+    ) -> list[EvidenceDocument]:
+        documents = []
+        seen: dict[tuple[str, str, int, str, str], str] = {}
+        for group in candidates:
+            if group.hits and group.memory_ref is None:
+                raise PreparedContextInvariantError("memory-ref-missing")
+            for hit in group.hits:
+                if hit.memory_ref != group.memory_ref:
+                    raise PreparedContextInvariantError("memory-ref-mismatch")
+                if not hit.text.strip() or not hit.entry_id.strip() or not hit.entry_version_id.strip():
+                    continue
+                scope = group.scope_id or current_scope_id
+                if not scope:
+                    raise PreparedContextInvariantError("evidence-scope-missing")
+                key = (scope, hit.memory_ref.artifact_id, hit.memory_ref.revision, hit.entry_id, hit.entry_version_id)
+                if key in seen:
+                    if seen[key] != hit.text:
+                        raise PreparedContextInvariantError("evidence-body-mismatch")
+                    continue
+                seen[key] = hit.text
+                address = MemoryEntryAddress(
+                    memory=ArtifactAddress(scope_id=scope, artifact=hit.memory_ref.model_copy(deep=True)),
+                    entry_id=hit.entry_id,
+                    entry_version_id=hit.entry_version_id,
+                )
+                documents.append(EvidenceDocument(address=address, text=hit.text))
+        return documents
+
+    def _build_evidence(
+        self,
+        request: PrepareContextRequest,
+        current_scope_id: str | None,
+        candidates: Sequence[PreparedMemoryCandidates],
+    ) -> PreparedContextBuild:
+        if sum(len(group.hits) for group in candidates) > self.memory_candidate_limit:
+            raise PreparedContextInvariantError("memory-candidate-limit")
+        documents = self._evidence_documents(current_scope_id, candidates)
+        fragments = select_evidence(request.query, documents, request.max_bytes)
+        selected = sum(any(fragment.address == document.address for fragment in fragments) for document in documents)
+        dropped = len(documents) - selected
+        omissions = PreparedContextOmissions(dropped_items=dropped, dropped_no_fitting_truncation=dropped)
+        if not fragments:
+            return PreparedContextBuild(context=self.empty(), origins=(), omissions=omissions)
+        content = render_evidence(fragments)
+        content_bytes = len(content.encode("utf-8"))
+        if content_bytes > request.max_bytes:
+            raise PreparedContextInvariantError("output-budget")
+        return PreparedContextBuild(
+            context=PreparedContext(status="ready", content=content, content_bytes=content_bytes),
+            origins=tuple(fragment.address for fragment in fragments),
+            fragments=fragments,
+            omissions=omissions,
+        )
+
     def probe_budget(
         self,
         *,
@@ -277,6 +344,15 @@ class PreparedContextBuilder:
         counters because both go through :meth:`_select_entries`.
         """
 
+        if request.evidence_selection:
+            build = self._build_evidence(request, current_scope_id, memory_candidates)
+            return RecallBudgetView(
+                max_bytes=request.max_bytes,
+                delivered_items=len(build.origins),
+                truncated_items=build.omissions.truncated_items,
+                dropped_items=build.omissions.dropped_items,
+                unused_bytes=max(0, request.max_bytes - build.context.content_bytes),
+            )
         content, origins, omissions = self._select_entries(
             request=request,
             current_scope_id=current_scope_id,
