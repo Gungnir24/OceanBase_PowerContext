@@ -20,9 +20,20 @@ import hashlib
 import io
 import json
 import re
+import zlib
 
 from pydantic import BaseModel
 from pypdf import PdfReader
+from pypdf.filters import decode_stream_data
+from pypdf.generic import (
+    ArrayObject,
+    ContentStream,
+    DecodedStreamObject,
+    EncodedStreamObject,
+    NameObject,
+    NullObject,
+    StreamObject,
+)
 
 from powercontext.sources._pdf_search import search_pdf_pages
 from powercontext.sources.definitions import SourceDefinition, SourceProjection
@@ -62,6 +73,80 @@ def _validate_document_id(document_id: str) -> None:
         raise ValueError("PDF document_id must not be blank")  # noqa: TRY003
 
 
+def _strict_content_data(stream: StreamObject) -> bytes:
+    """Validate Flate integrity before pypdf's best-effort recovery can lose text."""
+    filters = stream.get("/Filter", ())
+    if hasattr(filters, "get_object"):
+        filters = filters.get_object()
+    if isinstance(filters, NullObject):
+        return stream._data
+    if not isinstance(filters, (tuple, ArrayObject)):
+        filters = (filters,)
+    parameters = stream.get("/DecodeParms", ())
+    if hasattr(parameters, "get_object"):
+        parameters = parameters.get_object()
+    if not isinstance(parameters, (tuple, ArrayObject)):
+        parameters = (parameters,)
+    data = stream._data
+    for index, filter_name in enumerate(filters):
+        filter_name = filter_name.get_object()
+        if filter_name in {"/FlateDecode", "/Fl"}:
+            decoder = zlib.decompressobj()
+            decoder.decompress(data, max_length=75_000_001)
+            if not decoder.eof or decoder.unconsumed_tail:
+                raise ValueError("Incomplete or excessive PDF content stream")  # noqa: TRY003
+        single = EncodedStreamObject()
+        single._data = data
+        single[NameObject("/Filter")] = filter_name
+        if index < len(parameters) and not isinstance(parameters[index], NullObject):
+            single[NameObject("/DecodeParms")] = parameters[index]
+        data = decode_stream_data(single)
+    return data
+
+
+def _form_contents(resource, visited: set[int]) -> list[StreamObject]:
+    result = []
+    resources = [resource]
+    while resources:
+        resource = resources.pop()
+        resource = resource.get_object() if hasattr(resource, "get_object") else resource
+        if resource is None or isinstance(resource, NullObject):
+            continue
+        xobjects = resource.get("/XObject")
+        xobjects = xobjects.get_object() if xobjects is not None else None
+        if xobjects is None or isinstance(xobjects, NullObject):
+            continue
+        for reference in xobjects.values():
+            stream = reference.get_object()
+            if stream.get("/Subtype") == "/Form" and id(stream) not in visited:
+                result.append(stream)
+                resources.append(stream.get("/Resources", {}))
+                visited.add(id(stream))
+    return result
+
+
+def _validate_page_contents(page, reader: PdfReader, visited: set[int]) -> None:
+    """Parse page/Form content even when missing resources cause extraction to skip it."""
+    pending = [page.get("/Contents"), *_form_contents(page.get("/Resources", {}), visited)]
+    while pending:
+        value = pending.pop()
+        if value is None or isinstance(value, NullObject):
+            continue
+        stream = value.get_object()
+        if isinstance(stream, NullObject):
+            continue
+        if isinstance(stream, ArrayObject):
+            pending.extend(stream)
+            continue
+        if not isinstance(stream, StreamObject):
+            raise TypeError("PDF content is not a stream")  # noqa: TRY003
+        decoded = DecodedStreamObject()
+        decoded.set_data(_strict_content_data(stream))
+        # Accessing operations forces tokenization instead of accepting malformed
+        # data as an empty page when the page has no font resources.
+        _ = ContentStream(decoded, reader).operations
+
+
 def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
     """Extract every physical page or fail without returning partial pages."""
 
@@ -72,6 +157,9 @@ def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
             reader = PdfReader(stream, strict=True)
             if reader.is_encrypted and not reader.decrypt(""):
                 raise ValueError("The PDF cannot be opened with an empty password")  # noqa: TRY003, TRY301
+            visited: set[int] = set()
+            for page in reader.pages:
+                _validate_page_contents(page, reader, visited)
             pages = tuple(
                 PDFPageInput(
                     document_id=value.document_id,

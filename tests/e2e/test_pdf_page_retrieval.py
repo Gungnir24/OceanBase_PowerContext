@@ -21,6 +21,7 @@ import pytest
 
 from powercontext.artifacts import MemoryCitation
 from powercontext.builtin.artifacts.memory import MemoryEntryInput
+from powercontext.builtin.artifacts.memory.errors import InvalidMemoryCandidateError
 from powercontext.builtin.artifacts.memory.protocols import MemoryCandidateRequest
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime import (
@@ -224,5 +225,71 @@ def test_generic_financial_queries_deduplicate_pages_keep_scope_and_preserve_old
             entry = await runtime.memory.for_scope(first.scope_id).get(GetMemoryEntryRequest(citation=old_citation))
             assert "Civil litigation" in entry.entry.text and "Resolved litigation" not in entry.entry.text
             assert len(await _locations(runtime.memory.for_scope(first.scope_id), (old_citation,), sources)) == 1
+
+    asyncio.run(scenario())
+
+
+def test_dense_pdf_pages_keep_complete_memory_bodies_after_restart_and_search_real_statement_titles(
+    tmp_path: Path,
+) -> None:
+    dense = ("Detailed financial disclosure line 0123456789. " * 400) + "\nDenseSentinel 90210"
+    raw = make_pdf((
+        "Consolidated Statements of Operations\n2025 2024\nRevenue 500 400\nOperating income 70 60\nNet income 40 30",
+        "Footnote\nThe following table describes how hedging instruments are reported in other statements.\nConsolidated Statement of Income\n"
+        + "Operating income and consolidated income statements are discussed in this note. " * 25,
+        dense,
+        None,
+        "Consolidated Statements of Cash Flows\nOperating activities include cash payments for litigation contingencies.\n2025 2024\nNet cash from operations 70 60",
+        "Legal Proceedings\nThere is ongoing material litigation and legal proceedings regarding a civil lawsuit and regulatory claims.",
+    ))
+    pages = parse_pdf_document(PDFDocumentInput(document_id="DENSE_CO_2025_10K", content=raw))
+    assert len(pages[2].text.encode("utf-8")) > 8192
+    registry = SourceDefinitionRegistry((PDF_PAGE_SOURCE_DEFINITION,))
+    config = BuiltinConfig(database=SQLiteConfig(url=f"sqlite+aiosqlite:///{tmp_path / 'dense.db'}"))
+
+    async def scenario() -> None:
+        originals = {}
+        async with open_builtin_runtime(config, candidate_pipeline=_DuplicatePagePipeline()) as runtime:
+            assert runtime.scopes is not None
+            scope = (
+                await runtime.scopes.create(
+                    ScopeDraft(title="Dense PDF", summary="Full-page evidence", idempotency_key="dense")
+                )
+            ).scope_id
+            await runtime.ingestion.register(manifest_for_definition(PDF_PAGE_SOURCE_DEFINITION))
+            for page in pages:
+                source = await registry.resolve(page)
+                originals[source.name] = page
+                await runtime.ingestion.submit(
+                    SubmitSourceObservation(scope_id=scope, observation=project_source_for_transport(registry, source))
+                )
+            memory = runtime.memory.for_scope(scope)
+            await _flush(memory, len(pages))
+            # The extension is evidence-specific: ordinary notes keep their original limit.
+            before = (await memory.list()).memory_ref
+            with pytest.raises(InvalidMemoryCandidateError):
+                await memory.remember(RememberMemoryRequest(entries=(MemoryEntryInput(kind="note", text=dense),)))
+            assert (await memory.list()).memory_ref == before
+        async with open_builtin_runtime(config) as runtime:
+            memory = runtime.memory.for_scope(scope)
+            entries = await memory.list()
+            assert len(entries.entries) == 2 * len(pages)
+            for record in entries.entries:
+                page = originals[record.entry.sources[0].source_id]
+                assert record.entry.text == f"{page.document_id}\n{page.text}".strip()
+            citations = await search_pdf_pages(memory, "Dense Co DenseSentinel", limit=20)
+            assert await _locations(memory, citations, originals) == {
+                ("DENSE_CO_2025_10K", pages[2].document_sha256, 3)
+            }
+            citation = citations[0]
+            assert "90210" in (await memory.get(GetMemoryEntryRequest(citation=citation))).entry.text
+            statement = await search_pdf_pages(memory, "What is Dense Co's operating income in 2025?", limit=1)
+            assert await _locations(memory, statement, originals) == {
+                ("DENSE_CO_2025_10K", pages[0].document_sha256, 1)
+            }
+            legal = await search_pdf_pages(
+                memory, "Has Dense Co reported any materially important ongoing legal battles?", limit=1
+            )
+            assert await _locations(memory, legal, originals) == {("DENSE_CO_2025_10K", pages[5].document_sha256, 6)}
 
     asyncio.run(scenario())

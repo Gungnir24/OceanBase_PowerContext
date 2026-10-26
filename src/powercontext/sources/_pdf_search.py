@@ -268,28 +268,83 @@ def _queries(question: str) -> tuple[list[str], dict[str, float]]:
         queries.append(" ".join(aliases[:2]))
         if len(aliases) > 2:
             queries.append(" ".join(aliases[-2:]))
+    section_queries = {
+        "income": ("statements income", "statements operations", "statements earnings"),
+        "cash": ("cash flows",),
+        "balance": ("balance sheets", "financial position"),
+        "business": ("reportable segments", "geographic operations"),
+        "legal": ("legal proceedings", "litigation contingencies"),
+    }
+    for section in _wanted_sections(question):
+        queries.extend(section_queries[section])
     # Preserve unusual domain terms that may otherwise lose admission in a long question.
     focused = sorted(meaningful, key=lambda word: (-len(word), meaningful.index(word)))[:4]
     queries.extend(focused)
-    return list(dict.fromkeys(query for query in queries if query))[:16] or [question.strip()], weights
+    return list(dict.fromkeys(query for query in queries if query))[:24] or [question.strip()], weights
 
 
 def _wanted_sections(question: str) -> tuple[str, ...]:
     query = " ".join(_words(question))
+
+    # Word boundaries prevent "reported any" from being mistaken for D&A,
+    # or an unrelated word ending in p followed by l from matching P&L.
+    def contains(term: str) -> bool:
+        return re.search(r"\b" + re.escape(term.strip()) + r"\b", query) is not None
+
     requested = []
     if any(
-        term in query for term in ("income statement", "p l", "ebitda", "ebit ", "operating income", "operating profit")
+        contains(term)
+        for term in (
+            "income statement",
+            "p l",
+            "ebitda",
+            "ebit ",
+            "operating income",
+            "operating profit",
+            "gross profit",
+            "profit margin",
+            "margin",
+            "net income",
+            "net sales",
+            "revenue growth",
+        )
     ):
         requested.append("income")
-    if any(term in query for term in ("cash flow", "cashflow", "ebitda", "capex", "depreciation", "d a")):
+    if any(contains(term) for term in ("cash flow", "cashflow", "ebitda", "capex", "depreciation", "d a")):
         requested.append("cash")
-    if any(term in query for term in ("balance sheet", "current ratio", "assets", "liabilities", "working capital")):
+    if any(contains(term) for term in ("balance sheet", "current ratio", "assets", "liabilities", "working capital")):
         requested.append("balance")
-    if any(term in query for term in ("geograph", "countries", "regions", "primarily operate", "business model")):
+    if re.search(r"\bgeograph\w*\b", query) or any(
+        contains(term) for term in ("countries", "regions", "primarily operate", "business model")
+    ):
         requested.append("business")
-    if any(term in query for term in ("legal", "litigation", "lawsuit", "battles")):
+    if any(contains(term) for term in ("legal", "litigation", "lawsuit", "battles")):
         requested.append("legal")
     return tuple(requested)
+
+
+def _financial_headings(body: str) -> set[str]:
+    """Recognize standalone titles, not a note referring to another statement."""
+    lines = [line.strip().lower() for line in body.splitlines()[:24] if line.strip()]
+    prefix = r"(?:(?:consolidated|condensed|combined|unaudited))*"
+    suffix = r"(?:continued|unaudited)*"
+    titles = {
+        "income": r"(?:statementsof(?:income|earnings|operations|loss)|statementof(?:income|earnings|operations|loss)|incomestatements?|profitandlossstatements?)",
+        "cash": r"(?:statementsofcashflows?|statementofcashflows?|cashflowstatements?)",
+        "balance": r"(?:balancesheets?|statementsoffinancial(?:position|condition)|statementoffinancial(?:position|condition))",
+    }
+    found = set()
+    for start in range(len(lines)):
+        if any(len(_words(line)) >= 9 for line in lines[:start]):
+            # A table column below explanatory prose can mention another
+            # statement; it does not make this a primary financial statement.
+            break
+        for width in (1, 2, 3):
+            title = re.sub(r"[^a-z]", "", " ".join(lines[start : start + width]))
+            for kind, pattern in titles.items():
+                if re.fullmatch(prefix + pattern + suffix, title):
+                    found.add(kind)
+    return found
 
 
 def _section_types(text: str) -> set[str]:
@@ -298,13 +353,10 @@ def _section_types(text: str) -> set[str]:
     if len(re.findall(r"\bitem\s*\d+", body)) >= 5:
         return set()
     patterns = {
-        "income": r"statements? of (?:income|earnings|operations)|income statements?",
-        "cash": r"statements? of cash flows?|cash flows? statements?",
-        "balance": r"balance sheets?|statements? of financial (?:position|condition)",
         "business": r"our (?:company|business|operations|divisions|segments)|geographical operations|business overview",
         "legal": r"legal proceedings|litigation|commitments and contingencies",
     }
-    result = set()
+    result = _financial_headings(text.partition("\n")[2])
     for kind, pattern in patterns.items():
         match = re.search(pattern, heading)
         if match is not None and len(heading[: match.start()].split()) <= 16:
@@ -422,7 +474,7 @@ async def search_pdf_pages(memory: _SearchableMemory, question: str, limit: int 
     queries, weights = _queries(question)
     candidates: dict[tuple[str, int, str, str], _Candidate] = {}
     for query in queries:
-        page = await memory.search(SearchMemoryRequest(query=query, mode="fts", limit=max(100, min(400, limit * 8))))
+        page = await memory.search(SearchMemoryRequest(query=query, mode="fts", limit=max(256, min(1000, limit * 24))))
         for rank, hit in enumerate(page.hits, start=1):
             key = (hit.memory_ref.artifact_id, hit.memory_ref.revision, hit.entry_id, hit.entry_version_id)
             candidate = candidates.setdefault(

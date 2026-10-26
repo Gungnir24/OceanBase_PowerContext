@@ -22,7 +22,7 @@ import re
 import pytest
 from jsonschema import Draft202012Validator
 from pypdf import PdfWriter
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+from pypdf.generic import DecodedStreamObject, DictionaryObject, EncodedStreamObject, NameObject
 
 from powercontext.sources import (
     TEXT_EVIDENCE_PROJECTION_KEY,
@@ -120,6 +120,22 @@ def test_damaged_later_page_fails_without_partial_results() -> None:
     content = make_pdf(("Valid first page", "Broken second page"), corrupt_last=True)
     with pytest.raises(ValueError):
         parse_pdf_document(PDFDocumentInput(document_id="damaged", content=content))
+
+
+@pytest.mark.parametrize("compressed", [b"broken compressed text", b"x\x9c\x03"])
+def test_invalid_compressed_content_is_not_silently_accepted_as_a_blank_page(compressed: bytes) -> None:
+    writer = PdfWriter()
+    writer.add_blank_page(600, 800)
+    page = writer.add_blank_page(600, 800)
+    stream = EncodedStreamObject()
+    stream._data = compressed
+    stream[NameObject("/Filter")] = NameObject("/FlateDecode")
+    page[NameObject("/Contents")] = writer._add_object(stream)
+    with io.BytesIO() as output:
+        writer.write(output)
+        content = output.getvalue()
+    with pytest.raises(ValueError):
+        parse_pdf_document(PDFDocumentInput(document_id="broken-compression", content=content))
 
 
 @pytest.mark.parametrize("password", ["", "required-password"])
