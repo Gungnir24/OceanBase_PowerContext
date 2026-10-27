@@ -89,7 +89,7 @@ python tools/init_scope.py --base-url http://127.0.0.1:18080
    - `PC_BASE_URL`：Dify 在 Docker 里跑，填 `http://host.docker.internal:18080`；Dify 与 PowerContext 同机原生跑，填 `http://127.0.0.1:18080`。
    - `PC_SCOPE_ID`：第 3.2 步拿到的 `scp_xxx`。
    - `PC_TOKEN`：默认留空（PowerContext 本地演示不鉴权）。
-3. 打开 **LLM 节点「老陈」** → 把模型换成你工作区里可用的对话模型（推荐 `deepseek-chat`；通义千问、GPT 等均可，只要支持 JSON 输出）。
+3. 打开 **LLM 节点「老陈」** → 把模型换成你工作区里可用的对话模型（推荐 PPIO `deepseek/deepseek-v4.1-flash` 或 DeepSeek 官方 `deepseek-chat`；通义千问、GPT 等均可，只要支持 JSON 输出。PPIO 的接法见 [`docs/01-部署与运行.md`](docs/01-部署与运行.md) 4.1）。
 4. **发布**应用，打开对话框。
 
 > 环境变量改完记得点保存；若 Dify 提示 DSL 版本较新/较旧，选择继续导入即可。
@@ -113,7 +113,7 @@ python tools/init_scope.py --base-url http://127.0.0.1:18080
 预期形式：每轮回复末尾都有 `📒 第 N 笔账 ｜ 记仇值 X/100 ｜ 心情：…`。
 开放式对话不设唯一标准答案，但**记仇值必须随恶作剧上涨、随道歉下降，且跨会话不丢**。
 
-实际运行记录见 [`evidence/logs/`](evidence/logs/)。
+实际运行记录见 [`evidence/logs/`](evidence/logs/)：桩模型（`smoke-20261027-165026.md`）与真实模型 PPIO（`smoke-20261027-165611.md`）各一份；真实模型的对话效果与格式抽查见 [`docs/02-验证样例与证据.md`](docs/02-验证样例与证据.md) 的「样例四」。
 
 ---
 
@@ -145,5 +145,5 @@ python tools/init_scope.py --base-url http://127.0.0.1:18080
 - 产物目录：`dify/`
 - Dify 版本：DSL 基于 **1.18.x**（`version: 0.7.0`），1.17.x 亦可导入
 - PowerContext：**1.4.1**（PyPI `powercontext[cli,server]`）
-- 模型：DeepSeek `deepseek-chat`（可替换）
+- 模型：PPIO `deepseek/deepseek-v4.1-flash`（实测 16/16 轮 JSON 合规）；DeepSeek 官方 `deepseek-chat` 亦可
 - 复现命令：`tools/validate_dsl.py`、`tools/test_code_nodes.py`、`tools/init_scope.py`、`tools/smoke_test.py`

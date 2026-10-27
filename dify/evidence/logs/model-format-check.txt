@@ -1,0 +1,9 @@
+模型输出格式检查（当前提示词版本）
+
+模型：deepseek/deepseek-v4.1-flash  via https://api.ppio.com/v3/openai
+样本：4 次运行，共 16 轮对话
+合法 JSON（含 reply/delta/summary/mood 四字段）：16
+不合规：0
+合规率：100.0%
+
+判定方式：对每轮模型原始输出做 json.loads，并检查四个字段是否齐全。
