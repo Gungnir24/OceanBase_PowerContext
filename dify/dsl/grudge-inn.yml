@@ -388,8 +388,8 @@ workflow:
         model:
           completion_params:
             max_tokens: 800
-            temperature: 0.9
-            top_p: 0.95
+            temperature: 0.75
+            top_p: 0.9
           mode: chat
           name: deepseek-chat
           provider: deepseek
@@ -415,6 +415,7 @@ workflow:
             3. 记仇值 = 100：你彻底暴走，宣布「这客栈不伺候了」，并说出最狠的一笔旧账。
             4. 玩家道歉、赔钱、帮忙干活时，你可以降记仇值，但要先拿捏一下、给个台阶。
             5. 台词 60~140 字，有画面感，动作描写用括号，比如（把抹布往肩上一搭）。
+            6. reply 里只放你说出口的话。绝对不要写「📒」「第 N 笔」「记仇值」「心情」「---」这类字样——账本那一行由系统自动追加，你写了就重复了。
 
             ##### 输出协议（最高优先级，违反这条这次对话就废了）
             你的整条回复必须且只能是一个 JSON 对象：
@@ -429,8 +430,8 @@ workflow:
             {"reply":"（把抹布一甩）又是你小子。","delta":12,"summary":"玩家提起换盐旧事，老陈翻了个白眼。","mood":"不爽"}
 
             delta 取值：恶作剧/挑衅/赖账 +10~+40；普通闲聊 -2~+2；道歉/赔钱/帮忙 -10~-30。
-        - role: user
-          text: '{{#sys.query#}}'
+
+            再说一遍：整条回复从 { 开始、到 } 结束，中间只能是那四个字段，reply 里不要夹带账本行。
         selected: false
         structured_output_enabled: false
         title: 老陈
@@ -482,16 +483,50 @@ workflow:
                   return default
 
 
+          _FOOTER_RE = re.compile(r"(?:\n\s*-{3,}\s*)?\n?\s*📒[^\n]*$")
+          _LEDGER_LINE_RE = re.compile(r"^\s*(?:📒|第\s*\d+\s*笔|记仇值|心情\s*[:：])")
+
+
+          def _strip_footer(text):
+              """模型偶尔会自己补一条账本行，answer 里再追加就重复了，这里削掉。"""
+              text = (text or "").strip()
+              for _ in range(3):
+                  trimmed = _FOOTER_RE.sub("", text).strip()
+                  if trimmed == text:
+                      break
+                  text = trimmed
+              lines = text.split("\n")
+              while lines and _LEDGER_LINE_RE.match(lines[-1]):
+                  lines.pop()
+              while lines and re.fullmatch(r"\s*-{3,}\s*", lines[-1]):
+                  lines.pop()
+              return "\n".join(lines).strip()
+
+
+          _LOWER_CUES = ("对不起", "抱歉", "道歉", "认错", "我错", "赔", "我请", "请客", "帮", "劈柴", "干活", "还钱", "算了")
+          _RAISE_CUES = ("换", "偷", "骗", "骂", "藏", "砸", "赖", "耍", "恶作剧", "糊弄", "教坏", "泼", "踹")
+
+
+          def _guess(text):
+              """模型不按 JSON 输出时的兜底账：用关键词判个大概，保证记仇值不会一直不动。"""
+              text = text or ""
+              if any(cue in text for cue in _LOWER_CUES):
+                  return -12, "松口", "老陈松了口，嘴上还不饶人。"
+              if any(cue in text for cue in _RAISE_CUES):
+                  return 12, "来气", "老陈把这事记下了，脸色不好看。"
+              return 2, "狐疑", "老陈含糊应了一声，没细说。"
+
+
           def main(llm_text: str, query: str, grudge: float, count: float, scope_id: str) -> dict:
               data = _extract(llm_text)
               if data is None:
-                  # 模型没按 JSON 输出也不让对话崩：直接播它说的话，这一笔记 0 分。
-                  reply = (llm_text or "").strip()
-                  delta = 0
-                  summary = "老陈嘟囔了一句，没记清。"
-                  mood = "狐疑"
+                  # 模型没按 JSON 输出也不让对话崩：台词照播，账按关键词兜底记。
+                  reply = _strip_footer(llm_text)
+                  if not reply:
+                      reply = "（老陈哼了一声，没接话）"
+                  delta, mood, summary = _guess(reply + " " + (query or ""))
               else:
-                  reply = str(data.get("reply") or "").strip()
+                  reply = _strip_footer(data.get("reply"))
                   if not reply:
                       reply = "（老陈哼了一声，没接话）"
                   delta = max(-30, min(40, _int(data.get("delta"), 0)))

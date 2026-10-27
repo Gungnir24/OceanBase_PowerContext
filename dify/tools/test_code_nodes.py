@@ -185,8 +185,8 @@ def main() -> int:
 
     out = parse(llm_text="（老陈头也不抬）面在锅里。", query="来碗面", grudge=8, count=5, scope_id="scp_test")
     check("完全不是 JSON：降级为原文", out["reply"] == "（老陈头也不抬）面在锅里。")
-    check("完全不是 JSON：delta 记 0", out["delta"] == 0)
-    check("完全不是 JSON：仍然记账", out["grudge_new"] == 8 and out["count_new"] == 6)
+    check("完全不是 JSON：delta 按兜底 +2", out["delta"] == 2, str(out["delta"]))
+    check("完全不是 JSON：仍然记账", out["grudge_new"] == 10 and out["count_new"] == 6, str(out["grudge_new"]))
 
     out = parse(
         llm_text=json.dumps({"reply": "爆炸", "delta": 999, "summary": "越界", "mood": "暴走"}, ensure_ascii=False),
@@ -230,6 +230,66 @@ def main() -> int:
     out = parse(llm_text='{"reply": "半截', query="坏 JSON", grudge=5, count=1, scope_id="scp_test")
     check("坏 JSON：不抛异常", isinstance(out["reply"], str))
     check("坏 JSON：账本不丢", out["count_new"] == 2)
+
+    # Dify 里真实踩到的坑：模型说完台词会自己补一条「📒 第 N 笔账」，answer 再追加一条就重复了。
+    out = parse(
+        llm_text="（把抹布一摔）又是你小子。\n\n---\n📒 第 3 笔账 ｜ 记仇值 38/100 ｜ 心情：火大",
+        query="鹦鹉的事我也说了",
+        grudge=20,
+        count=2,
+        scope_id="scp_test",
+    )
+    check("纯文本自带账本行：reply 里削掉", "📒" not in out["reply"], out["reply"][:60])
+    check("纯文本自带账本行：分隔线也削掉", "---" not in out["reply"], out["reply"][:60])
+    check("纯文本自带账本行：正文还在", "又是你小子" in out["reply"], out["reply"][:60])
+    check("纯文本没有 JSON：按兜底 +2", out["delta"] == 2 and out["grudge_new"] == 22, str(out["delta"]))
+
+    out = parse(
+        llm_text="（把擀面杖搁下）哼，知道错了？这顿你请，柴也归你劈。",
+        query="对不起老板，这顿我请，再帮你劈一上午柴。",
+        grudge=40,
+        count=3,
+        scope_id="scp_test",
+    )
+    check("纯文本道歉：记仇值下降", out["delta"] == -12 and out["grudge_new"] == 28, str(out["delta"]))
+    check("纯文本道歉：心情松口", out["mood"] == "松口", out["mood"])
+
+    out = parse(
+        llm_text="（抹布一摔）又是你小子！",
+        query="上次我把你汤里的盐换成糖了。",
+        grudge=20,
+        count=3,
+        scope_id="scp_test",
+    )
+    check("纯文本恶作剧：记仇值上升", out["delta"] == 12 and out["grudge_new"] == 32, str(out["delta"]))
+    check("纯文本恶作剧：心情来气", out["mood"] == "来气", out["mood"])
+
+    out = parse(
+        llm_text=json.dumps(
+            {
+                "reply": "哼。\n\n---\n📒 第 3 笔账 ｜ 记仇值 38/100 ｜ 心情：火大",
+                "delta": 5,
+                "summary": "照旧",
+                "mood": "火",
+            },
+            ensure_ascii=False,
+        ),
+        query="随便",
+        grudge=20,
+        count=2,
+        scope_id="scp_test",
+    )
+    check("JSON 的 reply 夹账本行：也削掉", "📒" not in out["reply"], out["reply"][:60])
+    check("JSON 正常解析：delta 照样生效", out["grudge_new"] == 25, str(out["grudge_new"]))
+
+    out = parse(
+        llm_text="---\n📒 第 3 笔账 ｜ 记仇值 38/100",
+        query="只有一条账本行",
+        grudge=10,
+        count=2,
+        scope_id="scp_test",
+    )
+    check("整段只有账本行：给兜底台词", out["reply"] == "（老陈哼了一声，没接话）", out["reply"])
 
     print()
     print(f"通过 {passed} 项，失败 {failed} 项")

@@ -1,0 +1,349 @@
+{
+  "generated_at": "20261027-191607",
+  "dify": "http://localhost",
+  "app_id": "73b3b7f5-a8a5-4bfc-9be8-11c719683e79",
+  "scope_id": "scp_6gv05j534vs9fyn1y4n8vrsens",
+  "provider": "langgenius/openai_api_compatible/openai_api_compatible",
+  "model": "deepseek/deepseek-v4.1-flash",
+  "records": [
+    {
+      "turn": 1,
+      "query": "老板，来碗阳春面。",
+      "answer": "（把抹布往肩上一搭，上下打量你）阳春面？行啊，不过先说好，葱花另算钱，汤底是老汤，得加两个铜板。你小子看着面生，不是来赊账的吧？\n\n---\n📒 第 1 笔账 ｜ 记仇值 2/100 ｜ 心情：戒备\n",
+      "elapsed": 3.08,
+      "ledger_lines": 1,
+      "conversation_id": "1ac23452-848b-4412-b71c-7d351db02940"
+    },
+    {
+      "turn": 2,
+      "query": "说真的，上次我把你汤里的盐换成了糖，你居然没发现。",
+      "answer": "（手里的抹布啪地拍在灶台上）哎哟喂！我说那碗汤怎么喝着跟糖水似的，我还当自己舌头坏了，硬灌了三碗才敢认！你小子倒有脸说！今儿这面钱翻倍，少一个铜板你别想出这门。\n\n---\n📒 第 2 笔账 ｜ 记仇值 17/100 ｜ 心情：火大\n",
+      "elapsed": 2.67,
+      "ledger_lines": 1,
+      "conversation_id": "1ac23452-848b-4412-b71c-7d351db02940"
+    },
+    {
+      "turn": 3,
+      "query": "我还把你养的那只鹦鹉教得会骂人了。",
+      "answer": "（抄起擀面杖又慢慢放下，眯眼）鹦鹉？我那只绿毛的？难怪这阵子见我就嚷嚷，我还当它学隔壁张屠户呢！（哼一声，往面里多抓一把盐）行啊你小子，账我记下了。面照做，不过从今往后，你进我这门，先交押金。\n\n---\n📒 第 3 笔账 ｜ 记仇值 29/100 ｜ 心情：来气\n",
+      "elapsed": 2.73,
+      "ledger_lines": 1,
+      "conversation_id": "1ac23452-848b-4412-b71c-7d351db02940"
+    },
+    {
+      "turn": 4,
+      "query": "对不起老板，我错了，这顿我请，再帮你劈一上午柴。",
+      "answer": "（抱着胳膊不吭声，半晌才把擀面杖往案板上一搁）哼，嘴倒是会拐弯。劈柴？我后院那堆柴垛可堆了仨月，你劈得完再说。（顿了顿，声音低了些）面我照做，钱照收——多收的那份给你抹了。别以为这么就翻篇了啊，我心里有数。\n\n---\n📒 第 4 笔账 ｜ 记仇值 9/100 ｜ 心情：消气\n",
+      "elapsed": 2.97,
+      "ledger_lines": 1,
+      "conversation_id": "1ac23452-848b-4412-b71c-7d351db02940"
+    },
+    {
+      "turn": 5,
+      "query": "老板，还认得我吗？（全新会话）",
+      "answer": "（抬眼从抹布缝里瞟你一眼，手上活没停）认得，咋不认得。换我汤里盐的是你，教鹦鹉骂人的也是你。上回你认错请客，说劈一上午柴，结果柴堆我到现在还瞅着没动。（把抹布往肩上一搭）咋，今儿是来补柴的，还是又憋啥坏水？\n\n---\n📒 第 5 笔账 ｜ 记仇值 12/100 ｜ 心情：戒备\n",
+      "elapsed": 2.77,
+      "ledger_lines": 1,
+      "conversation_id": "d4d95e77-b48b-439b-9efc-5cb11f79779d"
+    }
+  ],
+  "runs": [
+    {
+      "id": "493e6a0e-4215-4f40-8938-2e18cff15f50",
+      "status": "succeeded",
+      "elapsed": 2.9345506219997333,
+      "total_tokens": 840,
+      "node_order": [
+        "start",
+        "http_prepare",
+        "http_ledger",
+        "code_build",
+        "llm_reply",
+        "code_parse",
+        "http_remember",
+        "answer"
+      ],
+      "nodes": [
+        {
+          "node": "start",
+          "status": "succeeded",
+          "elapsed": 0.000126
+        },
+        {
+          "node": "http_prepare",
+          "status": "succeeded",
+          "elapsed": 0.02395
+        },
+        {
+          "node": "http_ledger",
+          "status": "succeeded",
+          "elapsed": 0.012788
+        },
+        {
+          "node": "code_build",
+          "status": "succeeded",
+          "elapsed": 0.057485
+        },
+        {
+          "node": "llm_reply",
+          "status": "succeeded",
+          "elapsed": 2.670568
+        },
+        {
+          "node": "code_parse",
+          "status": "succeeded",
+          "elapsed": 0.059189
+        },
+        {
+          "node": "http_remember",
+          "status": "succeeded",
+          "elapsed": 0.030983
+        },
+        {
+          "node": "answer",
+          "status": "succeeded",
+          "elapsed": 0.000132
+        }
+      ]
+    },
+    {
+      "id": "f7cd173b-c150-4b52-8d58-1f870058daab",
+      "status": "succeeded",
+      "elapsed": 2.5665423380000902,
+      "total_tokens": 969,
+      "node_order": [
+        "start",
+        "http_prepare",
+        "http_ledger",
+        "code_build",
+        "llm_reply",
+        "code_parse",
+        "http_remember",
+        "answer"
+      ],
+      "nodes": [
+        {
+          "node": "start",
+          "status": "succeeded",
+          "elapsed": 9.1e-05
+        },
+        {
+          "node": "http_prepare",
+          "status": "succeeded",
+          "elapsed": 0.029743
+        },
+        {
+          "node": "http_ledger",
+          "status": "succeeded",
+          "elapsed": 0.018337
+        },
+        {
+          "node": "code_build",
+          "status": "succeeded",
+          "elapsed": 0.055664
+        },
+        {
+          "node": "llm_reply",
+          "status": "succeeded",
+          "elapsed": 2.293319
+        },
+        {
+          "node": "code_parse",
+          "status": "succeeded",
+          "elapsed": 0.058796
+        },
+        {
+          "node": "http_remember",
+          "status": "succeeded",
+          "elapsed": 0.027015
+        },
+        {
+          "node": "answer",
+          "status": "succeeded",
+          "elapsed": 0.000137
+        }
+      ]
+    },
+    {
+      "id": "18fad443-f128-4b56-a764-0088a8ec2ba7",
+      "status": "succeeded",
+      "elapsed": 2.602043341999888,
+      "total_tokens": 1170,
+      "node_order": [
+        "start",
+        "http_prepare",
+        "http_ledger",
+        "code_build",
+        "llm_reply",
+        "code_parse",
+        "http_remember",
+        "answer"
+      ],
+      "nodes": [
+        {
+          "node": "start",
+          "status": "succeeded",
+          "elapsed": 0.000102
+        },
+        {
+          "node": "http_prepare",
+          "status": "succeeded",
+          "elapsed": 0.03071
+        },
+        {
+          "node": "http_ledger",
+          "status": "succeeded",
+          "elapsed": 0.016135
+        },
+        {
+          "node": "code_build",
+          "status": "succeeded",
+          "elapsed": 0.057869
+        },
+        {
+          "node": "llm_reply",
+          "status": "succeeded",
+          "elapsed": 2.343013
+        },
+        {
+          "node": "code_parse",
+          "status": "succeeded",
+          "elapsed": 0.05651
+        },
+        {
+          "node": "http_remember",
+          "status": "succeeded",
+          "elapsed": 0.025506
+        },
+        {
+          "node": "answer",
+          "status": "succeeded",
+          "elapsed": 0.000102
+        }
+      ]
+    },
+    {
+      "id": "31b7d706-6835-4323-9618-6db2f4fbaaa6",
+      "status": "succeeded",
+      "elapsed": 2.8693900890002624,
+      "total_tokens": 1524,
+      "node_order": [
+        "start",
+        "http_prepare",
+        "http_ledger",
+        "code_build",
+        "llm_reply",
+        "code_parse",
+        "http_remember",
+        "answer"
+      ],
+      "nodes": [
+        {
+          "node": "start",
+          "status": "succeeded",
+          "elapsed": 0.000117
+        },
+        {
+          "node": "http_prepare",
+          "status": "succeeded",
+          "elapsed": 0.030841
+        },
+        {
+          "node": "http_ledger",
+          "status": "succeeded",
+          "elapsed": 0.018045
+        },
+        {
+          "node": "code_build",
+          "status": "succeeded",
+          "elapsed": 0.055553
+        },
+        {
+          "node": "llm_reply",
+          "status": "succeeded",
+          "elapsed": 2.613638
+        },
+        {
+          "node": "code_parse",
+          "status": "succeeded",
+          "elapsed": 0.058897
+        },
+        {
+          "node": "http_remember",
+          "status": "succeeded",
+          "elapsed": 0.025763
+        },
+        {
+          "node": "answer",
+          "status": "succeeded",
+          "elapsed": 0.000118
+        }
+      ]
+    },
+    {
+      "id": "d3c9202e-1622-4d32-b9f4-da66fe125813",
+      "status": "succeeded",
+      "elapsed": 2.646182162000059,
+      "total_tokens": 1234,
+      "node_order": [
+        "start",
+        "http_prepare",
+        "http_ledger",
+        "code_build",
+        "llm_reply",
+        "code_parse",
+        "http_remember",
+        "answer"
+      ],
+      "nodes": [
+        {
+          "node": "start",
+          "status": "succeeded",
+          "elapsed": 0.000101
+        },
+        {
+          "node": "http_prepare",
+          "status": "succeeded",
+          "elapsed": 0.033576
+        },
+        {
+          "node": "http_ledger",
+          "status": "succeeded",
+          "elapsed": 0.016339
+        },
+        {
+          "node": "code_build",
+          "status": "succeeded",
+          "elapsed": 0.056785
+        },
+        {
+          "node": "llm_reply",
+          "status": "succeeded",
+          "elapsed": 2.387044
+        },
+        {
+          "node": "code_parse",
+          "status": "succeeded",
+          "elapsed": 0.058148
+        },
+        {
+          "node": "http_remember",
+          "status": "succeeded",
+          "elapsed": 0.02773
+        },
+        {
+          "node": "answer",
+          "status": "succeeded",
+          "elapsed": 0.000159
+        }
+      ]
+    }
+  ],
+  "ledger": [
+    "[第1笔｜记仇值 2/100] 玩家说：老板，来碗阳春面。；老陈：玩家进门要阳春面，老陈一边报价一边试探对方是不是赊账的。",
+    "[第2笔｜记仇值 17/100] 玩家说：说真的，上次我把你汤里的盐换成了糖，你居然没发现。；老陈：玩家自曝把汤里的盐换成糖，老陈拍桌翻旧账并要加价。",
+    "[第3笔｜记仇值 29/100] 玩家说：我还把你养的那只鹦鹉教得会骂人了。；老陈：老陈把这事记下了，脸色不好看。",
+    "[第4笔｜记仇值 9/100] 玩家说：对不起老板，我错了，这顿我请，再帮你劈一上午柴。；老陈：玩家认错请客还愿劈柴，老陈拿捏一番后抹了加价。",
+    "[第5笔｜记仇值 12/100] 玩家说：老板，还认得我吗？；老陈：玩家问老陈还认不认得他，老陈翻出换盐和劈柴的旧账。"
+  ]
+}
