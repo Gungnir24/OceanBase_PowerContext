@@ -296,6 +296,13 @@ def _wanted_sections(question: str) -> tuple[str, ...]:
         contains(term)
         for term in (
             "income statement",
+            "income statements",
+            "statement of income",
+            "statements of income",
+            "statement of operations",
+            "statements of operations",
+            "statement of earnings",
+            "statements of earnings",
             "p l",
             "ebitda",
             "ebit ",
@@ -310,9 +317,25 @@ def _wanted_sections(question: str) -> tuple[str, ...]:
         )
     ):
         requested.append("income")
-    if any(contains(term) for term in ("cash flow", "cashflow", "ebitda", "capex", "depreciation", "d a")):
+    if any(
+        contains(term) for term in ("cash flow", "cash flows", "cashflow", "ebitda", "capex", "depreciation", "d a")
+    ):
         requested.append("cash")
-    if any(contains(term) for term in ("balance sheet", "current ratio", "assets", "liabilities", "working capital")):
+    if any(
+        contains(term)
+        for term in (
+            "balance sheet",
+            "balance sheets",
+            "financial position",
+            "current ratio",
+            "quick ratio",
+            "assets",
+            "liabilities",
+            "working capital",
+            "cash ratio",
+            "debt ratio",
+        )
+    ):
         requested.append("balance")
     if re.search(r"\bgeograph\w*\b", query) or any(
         contains(term) for term in ("countries", "regions", "primarily operate", "business model")
@@ -326,10 +349,12 @@ def _wanted_sections(question: str) -> tuple[str, ...]:
 def _financial_headings(body: str) -> set[str]:
     """Recognize standalone titles, not a note referring to another statement."""
     lines = [line.strip().lower() for line in body.splitlines()[:24] if line.strip()]
+    if re.search(r"\bindex to (?:the )?(?:consolidated )?financial statements\b", " ".join(lines)):
+        return set()
     prefix = r"(?:(?:consolidated|condensed|combined|unaudited))*"
     suffix = r"(?:continued|unaudited)*"
     titles = {
-        "income": r"(?:statementsof(?:income|earnings|operations|loss)|statementof(?:income|earnings|operations|loss)|incomestatements?|profitandlossstatements?)",
+        "income": r"(?:statementsof(?:net)?(?:income|earnings|operations|loss)|statementof(?:net)?(?:income|earnings|operations|loss)|incomestatements?|profitandlossstatements?)(?:loss|income|andcomprehensive(?:income|loss))?",
         "cash": r"(?:statementsofcashflows?|statementofcashflows?|cashflowstatements?)",
         "balance": r"(?:balancesheets?|statementsoffinancial(?:position|condition)|statementoffinancial(?:position|condition))",
     }
@@ -380,7 +405,7 @@ def _heading_bonus(question: str, text: str) -> float:
     return bonus
 
 
-def _document_anchor(document: str, query_words: set[str]) -> float:
+def _document_anchor(document: str, query_compounds: set[str]) -> float:
     names = tuple(
         dict.fromkeys(
             word for word in _words(document) if not word.isdigit() and word not in _DOCUMENT_WORDS and len(word) > 1
@@ -389,9 +414,20 @@ def _document_anchor(document: str, query_words: set[str]) -> float:
     if not names:
         return 0.0
     joined, acronym = "".join(names), "".join(word[0] for word in names)
-    if joined in query_words or (len(acronym) > 1 and acronym not in _STOP_WORDS and acronym in query_words):
-        return 1.0
-    return len(set(names) & query_words) / len(names)
+    if joined in query_compounds or (len(acronym) > 1 and acronym not in _STOP_WORDS and acronym in query_compounds):
+        return float(len(joined))
+    matched = sum(len(name) for name in names if name in query_compounds)
+    return matched * matched / len(joined)
+
+
+def _query_compounds(question: str) -> set[str]:
+    """Match a company with or without spaces and punctuation, using whole tokens."""
+    words = _words(question)
+    return {
+        "".join(words[start:end])
+        for start in range(len(words))
+        for end in range(start + 1, min(start + 9, len(words)) + 1)
+    }
 
 
 def _rank_candidates(
@@ -404,10 +440,11 @@ def _rank_candidates(
     for counter in counters:
         frequencies.update(counter.keys())
     average = max(1.0, sum(sum(counter.values()) for counter in counters) / len(counters))
-    query_words = set(_words(question))
+    query_compounds = _query_compounds(question)
     years = set(re.findall(r"(?:19|20)\d\d", question))
     scores: list[float] = []
     anchors: list[float] = []
+    relevant: list[bool] = []
     for candidate, terms in zip(candidates, counters, strict=True):
         length = sum(terms.values())
         score = 0.0
@@ -418,19 +455,22 @@ def _rank_candidates(
                 score += (
                     weight * inverse_frequency * frequency * 2.2 / (frequency + 1.2 * (0.5 + 0.5 * length / average))
                 )
-        score += _heading_bonus(question, candidate.text)
+        bonus = _heading_bonus(question, candidate.text)
+        relevant.append(score > 0.0 or bonus > 0.0)
+        score += bonus
         score += 8.0 * candidate.reciprocal_rank
         document_words = set(_words(candidate.text.partition("\n")[0]))
-        anchors.append(_document_anchor(candidate.text.partition("\n")[0], query_words))
+        anchors.append(_document_anchor(candidate.text.partition("\n")[0], query_compounds))
         if years & document_words:
             score += 0.5
         scores.append(score)
-    has_named_document = any(anchor >= 0.5 for anchor in anchors)
-    minimum_anchor = max(anchors) * 0.9 if has_named_document else 0.0
+    maximum_anchor = max(anchors)
+    has_named_document = maximum_anchor >= 1.0
+    minimum_anchor = maximum_anchor * 0.9 if has_named_document else 0.0
     scored = [
-        (score * (0.25 + 0.75 * anchor) if has_named_document else score, candidate)
-        for score, anchor, candidate in zip(scores, anchors, candidates, strict=True)
-        if anchor >= minimum_anchor
+        (score * (0.25 + 0.75 * anchor / maximum_anchor) if has_named_document else score, candidate)
+        for score, anchor, candidate, matches in zip(scores, anchors, candidates, relevant, strict=True)
+        if anchor >= minimum_anchor and matches
     ]
     scored.sort(key=lambda item: (-item[0], item[1].citation.entry_version_id))
     return _diversify(scored, question, limit)
@@ -443,6 +483,37 @@ def _diversify(scored: list[tuple[float, _Candidate]], question: str, limit: int
     for kind in _wanted_sections(question):
         matches = [index for index, (_, candidate) in enumerate(scored) if kind in _section_types(candidate.text)]
         order.extend(index for index in matches[:2] if index not in order)
+    # Ratios and derived financial metrics may require inputs from more than the
+    # explicitly named statement. Keep a small statement coverage reserve at
+    # evidence-page retrieval budgets, leaving most places for lexical evidence.
+    financial_terms = {
+        "ratio",
+        "margin",
+        "turnover",
+        "ebit",
+        "ebitda",
+        "profit",
+        "income",
+        "revenue",
+        "sales",
+        "assets",
+        "liabilities",
+        "debt",
+        "equity",
+        "capex",
+        "capital",
+        "dividend",
+        "inventory",
+        "receivable",
+        "payable",
+        "cost",
+        "costs",
+    }
+    if limit >= 10 and financial_terms.intersection(_words(question)):
+        for kind in ("income", "cash", "balance"):
+            matches = [index for index, (_, candidate) in enumerate(scored) if kind in _section_types(candidate.text)]
+            if matches and not any(index in order for index in matches):
+                order.append(matches[0])
     order = order[:limit]
     terms = [{_stem(word) for word in _words(candidate.text) if word not in _STOP_WORDS} for _, candidate in scored]
     similarities = [0.0] * len(scored)
@@ -475,21 +546,23 @@ async def search_pdf_pages(memory: _SearchableMemory, question: str, limit: int 
     candidates: dict[tuple[str, int, str, str], _Candidate] = {}
     for query in queries:
         page = await memory.search(SearchMemoryRequest(query=query, mode="fts", limit=max(256, min(1000, limit * 24))))
-        for rank, hit in enumerate(page.hits, start=1):
-            key = (hit.memory_ref.artifact_id, hit.memory_ref.revision, hit.entry_id, hit.entry_version_id)
-            candidate = candidates.setdefault(
-                key,
-                _Candidate(
-                    citation=MemoryCitation(
-                        memory_ref=hit.memory_ref, entry_id=hit.entry_id, entry_version_id=hit.entry_version_id
-                    ),
-                    text=hit.text,
-                ),
-            )
-            candidate.reciprocal_rank += 1.0 / (60.0 + rank)
+        _collect_candidates(candidates, page)
+    admitted = await _pdf_candidates(memory, list(candidates.values()))
+    # A company name is present in every page projection. Once a real hit identifies
+    # the requested document, retrieve its pages before reranking. Global term
+    # limits must not hide its short financial statements behind longer notes or
+    # pages from other reports. These are still real scoped Memory search hits.
+    compounds = _query_compounds(question)
+    documents = {candidate.text.partition("\n")[0] for candidate in admitted}
+    anchors = {document: _document_anchor(document, compounds) for document in documents}
+    best = max(anchors.values(), default=0.0)
+    if best >= 1.0:
+        for document in sorted(doc for doc, anchor in anchors.items() if anchor >= best * 0.9):
+            page = await memory.search(SearchMemoryRequest(query=document, mode="fts", limit=max(2048, limit * 64)))
+            _collect_candidates(candidates, page)
+        admitted = await _pdf_candidates(memory, list(candidates.values()))
     selected: list[MemoryCitation] = []
     seen: set[str] = set()
-    admitted = await _pdf_candidates(memory, list(candidates.values()))
     for candidate in _rank_candidates(admitted, question, weights, limit):
         entry = candidate.entry
         if entry is None:
@@ -502,3 +575,19 @@ async def search_pdf_pages(memory: _SearchableMemory, question: str, limit: int 
         if len(selected) == limit:
             break
     return tuple(selected)
+
+
+def _collect_candidates(candidates: dict[tuple[str, int, str, str], _Candidate], page: MemorySearchPage) -> None:
+    """Retain exact Memory identities while combining recall queries."""
+    for rank, hit in enumerate(page.hits, start=1):
+        key = (hit.memory_ref.artifact_id, hit.memory_ref.revision, hit.entry_id, hit.entry_version_id)
+        candidate = candidates.setdefault(
+            key,
+            _Candidate(
+                citation=MemoryCitation(
+                    memory_ref=hit.memory_ref, entry_id=hit.entry_id, entry_version_id=hit.entry_version_id
+                ),
+                text=hit.text,
+            ),
+        )
+        candidate.reciprocal_rank += 1.0 / (60.0 + rank)
