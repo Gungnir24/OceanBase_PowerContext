@@ -280,12 +280,13 @@ qoder/
 ## 10. 提交材料与开发记录
 
 - 代码仓库：`https://github.com/Gungnir24/OceanBase_PowerContext`（分支 `2026-competition-ecosystem`）
+- 作品链接：<https://researchnest-ha7wrs9jpxe.qoder.website>
 - 运行说明：本文第 4、5 节
 - 验证样例：本文第 5 节 + `scripts/verify_live.py`
 - Qoder 开发记录：`docs/qoder-development-log.md`
 - 架构说明：`docs/architecture.md`
 - 页面截图：`docs/screenshots/`
-- 项目网站：`site/index.html`（通过 Qoder Sites 发布）
+- 项目网站源码：`site/index.html`（已通过 Qoder Sites 发布）
 
 ## 11. 数据与开源声明
 

@@ -88,8 +88,8 @@
 
 ### 6.1 当前状态
 
-- 代码、测试、文档已完成；
-- **Qoder 客户端截图、账号 UID、Sites 发布记录尚未写入本仓库**；
+- 代码、测试、文档已完成，项目网站已通过 Qoder Sites 发布（链接见 6.3）；
+- **Qoder 客户端截图与账号 UID 尚未写入本仓库**；
 - 本节占位符：`docs/screenshots/qoder-*.png`。
 
 ### 6.2 需要补的截图（建议 5 张）
@@ -115,7 +115,7 @@
 | Qoder 账号 UID | `待填写` |
 | 使用起止时间 | `待填写` |
 | 截图 | `待填写` |
-| Qoder Sites 作品链接 | `待填写` |
+| Qoder Sites 作品链接 | <https://researchnest-ha7wrs9jpxe.qoder.website> |
 
 > 说明：以上三项是赛事硬性材料，必须由参赛者本人提供；代码仓库不会伪造。
 
