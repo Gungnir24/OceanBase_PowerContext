@@ -83,6 +83,18 @@ python app/server.py --demo --port 8790
 > 截图来自 **demo 模式**，页面顶部有「演示模式」标识；它们证明界面与交互，不证明
 > seekdb/PowerContext 联通性。
 
+### 2.4 作品链接（Qoder Sites）
+
+| 检查 | 结果 |
+| --- | --- |
+| 地址 | <https://researchnest-ha7wrs9jpxe.qoder.website> |
+| 匿名访问（不带 Qoder 登录态） | HTTP 200，直接渲染项目主页 |
+| 页面内容 | 与 `site/index.html` 一致（首屏、功能、技术分工、验证、运行命令） |
+| 图片资源 | `screenshots/overview.png`、`ask.png`、`verify.png` 等均返回 `image/png` |
+
+首次发布时访问权限为「仅受邀用户」，匿名访问返回 401；已在 Qoder Sites 中改为
+**Anyone can access / Allow public access** 后复查通过。评委无需登录即可打开。
+
 ## 3. 评审复现（live，需 Docker）
 
 ### 3.1 启动
