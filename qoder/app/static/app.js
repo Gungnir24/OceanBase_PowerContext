@@ -611,7 +611,9 @@ function answerHtml(result) {
     <div>
       <div class="card">
         <div class="card-head"><div><div class="card-title">本轮用到的记忆</div>
-          <div class="card-sub">来自 PowerContext，跨会话保存</div></div></div>
+          <div class="card-sub">来自 PowerContext，跨会话保存${
+            result.memory_source === "standing" ? "（本次提问未命中，已按常驻主题召回）" : ""
+          }</div></div></div>
         <div class="list">${memories || '<div class="empty">没有命中的记忆。去「研究记忆」写入方向、偏好或进展。</div>'}</div>
       </div>
       <div class="card" style="margin-top:16px">

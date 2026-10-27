@@ -14,6 +14,11 @@ from .ingest import chunk_text, make_chunk_id, make_paper_id, parse_document
 from .powercontext import PowerContextClient, PowerContextError
 from .seekdb_store import SeekDBError, SeekDBStore
 
+# 一次提问的措辞可能和任何一条记忆都没有字面交集（中文短问句尤其明显）。
+# 这时退回按常驻主题召回，保证「研究方向 / 回答偏好 / 实验约束」这类长期
+# 上下文不会因为问法变化而丢失。
+STANDING_MEMORY_QUERY = "研究方向 回答偏好 实验约束 本周进展"
+
 
 class AppService:
     def __init__(self, cfg) -> None:
@@ -175,10 +180,26 @@ class AppService:
         memories: List[Dict[str, Any]] = []
         prepared: Dict[str, Any] = {}
         memory_warning = ""
+        memory_source = "none"
+        prepared_source = "none"
         if self.powercontext_ok:
             try:
                 memories = self.pc.search(question, limit=6)
+                memory_source = "query" if memories else "none"
+                if not memories:
+                    memories = self.pc.search(STANDING_MEMORY_QUERY, limit=6)
+                    memory_source = "standing" if memories else "none"
                 prepared = self.pc.prepare(question, max_bytes=4000)
+                prepared_source = (
+                    "query" if (prepared.get("content") or "").strip() else "none"
+                )
+                if prepared_source == "none":
+                    prepared = self.pc.prepare(STANDING_MEMORY_QUERY, max_bytes=4000)
+                    prepared_source = (
+                        "standing"
+                        if (prepared.get("content") or "").strip()
+                        else "none"
+                    )
             except PowerContextError as exc:
                 memory_warning = f"记忆读取失败：{exc}"
         else:
@@ -201,6 +222,8 @@ class AppService:
         result["elapsed_ms"] = int((time.perf_counter() - started) * 1000)
         result["prepared_context"] = prepared.get("content") or ""
         result["memory_warning"] = memory_warning
+        result["memory_source"] = memory_source
+        result["prepared_source"] = prepared_source
         result["search"] = {
             "query": search["query"],
             "hits": search["hits"],
@@ -294,7 +317,11 @@ class AppService:
         if self.powercontext_ok:
             try:
                 memories = self.pc.search("本周进展 阻塞 下一步 计划", limit=8)
+                if not memories:
+                    memories = self.pc.search(STANDING_MEMORY_QUERY, limit=8)
                 prepared = self.pc.prepare("本周科研进展与周报", max_bytes=4000)
+                if not (prepared.get("content") or "").strip():
+                    prepared = self.pc.prepare(STANDING_MEMORY_QUERY, max_bytes=4000)
             except PowerContextError as exc:
                 memory_warning = str(exc)
         else:

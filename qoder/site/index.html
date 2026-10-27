@@ -200,13 +200,14 @@
         <div class="pills">
           <span class="pill">seekdb · HNSW + ik 全文</span>
           <span class="pill">PowerContext · Memory + prepare</span>
-          <span class="pill">47 个测试通过</span>
+          <span class="pill">54 个测试通过</span>
+          <span class="pill">18 项 live 断言全过</span>
           <span class="pill">无 LLM Key 也可用</span>
         </div>
       </div>
       <figure class="shot" style="margin:0">
         <img src="screenshots/overview.png" alt="研栖概览页：数据卡片、最近检索与工作流" />
-        <figcaption>概览：文献、切片、检索次数与记忆数量；截图来自演示模式。</figcaption>
+        <figcaption>概览：文献、切片、检索次数与记忆数量（live 模式，seekdb + PowerContext 真实运行）。</figcaption>
       </figure>
     </div>
   </section>
@@ -332,21 +333,28 @@
       </div>
       <div class="verify-box">
         <pre><code>$ python -m unittest discover -s tests
-...............................................
-Ran 47 tests in 4.749s
+Ran 54 tests in 4.987s
+OK (skipped=3)                    # 3 个真库集成用例，设 SEEKDB_LIVE=1 才跑
+
+$ SEEKDB_LIVE=1 python -m unittest discover -s tests
+Ran 54 tests in 6.109s
 OK
 
 $ python scripts/verify_live.py
 [1/6] 健康检查
-  PASS  seekdb 已连接（5.x）
-  PASS  PowerContext 已连接（scope=...）
+  PASS  seekdb 已连接（5.7.25-OceanBase seekdb-v1.4.0.0）
+  PASS  PowerContext 已连接（scope=scp_5w9nmt2p84gsnepqbr4rt5fke8）
   PASS  全文索引可用（不是 LIKE 退化路径）
+  PASS  向量索引可用（ANN 未退化为精确扫描）
 [3/6] 混合检索问答
   PASS  返回 6 条带出处引用
-  PASS  命中 4 条研究记忆
-  首条引用：...（通道=vector+fulltext）
+  PASS  检索通道无报错（两条 SQL 都成功执行）
+  PASS  每条引用都带非空的文献标题
+  PASS  两路召回均有候选（向量 12 / 全文 12）
+  PASS  命中 1 条研究记忆
+  首条引用：《面向中文长文档的混合检索…》· 片段 1（通道=vector+fulltext）
 ...
-结果：PASS（N 项全部通过）</code></pre>
+结果：PASS（18 项全部通过）</code></pre>
         <div>
           <ul class="checklist">
             <li>向量 SQL 使用 <code class="inline">l2_distance ... APPROXIMATE</code>，全文 SQL 使用布尔模式 MATCH</li>
@@ -354,6 +362,7 @@ $ python scripts/verify_live.py
             <li>记忆按 scope 持久化，重启后仍能召回</li>
             <li>回答、周报、证据列表共用同一套 citation 编号</li>
             <li>无全文索引时退化为 LIKE，无向量索引时退化为精确扫描，均记录 warnings</li>
+            <li>检索 SQL 引用的列必须存在于建表语句：<code class="inline">test_schema_contract.py</code> 守着这条线</li>
             <li>示例数据为虚构，不含真实用户信息</li>
           </ul>
         </div>
@@ -394,7 +403,7 @@ python app/server.py             # http://127.0.0.1:8787</code></pre>
         </div>
         <ul class="checklist">
           <li>回答出现 <code class="inline">Recall@10</code>、<code class="inline">k=20/60/100</code> 等来自示例材料的细节</li>
-          <li>右侧「本轮用到的记忆」出现方向、偏好、约束、进展</li>
+          <li>右侧「本轮用到的记忆」出现方向、偏好、约束、进展（问句与记忆无字面交集时按常驻主题召回，页面会标注）</li>
           <li>「技术核验」新增一条 <code class="inline">vector+fts</code> 检索日志</li>
           <li>再写入一条约束记忆并提问，回答会引用它</li>
           <li>生成周报，引用编号与证据清单一一对应</li>
@@ -406,10 +415,16 @@ python app/server.py             # http://127.0.0.1:8787</code></pre>
   <section>
     <div class="wrap">
       <div class="notice">
-        <b>关于截图的说明</b>：页面截图来自演示模式（页面顶部有标识）。开发机没有 Docker，
-        seekdb 与 PowerContext Server 的 live 联通未在本机执行；仓库提供了
-        <code class="inline">scripts/verify_live.py</code> 与完整复现步骤，供评审在有 Docker
-        的环境一键验证。这一缺口在 README 与验证记录中均已注明。
+        <b>首版提测问题的修复（2026-10-27）</b>：提测反馈“检索 SQL 引用不存在的
+        <code class="inline">title</code> 字段，问答无法返回证据”。在真实 seekdb
+        （<code class="inline">oceanbase/seekdb:latest</code>，v1.4.0.0）上复现后确认，这是
+        live 链路的必现故障，且不止一处：<b>①</b> <code class="inline">chunks</code> 表缺
+        <code class="inline">title</code> 列，向量与全文两条 SQL 同时 1054；<b>②</b> 数据库
+        cursor 未用 <code class="inline">DictCursor</code>，返回 tuple 导致按列名取值全部报错；
+        <b>③</b> 向量索引重复创建时被误判为失败，第二次启动谎报“退化为精确扫描”。三处已修复，
+        并补了表结构契约测试与真库集成测试——首版 47 个单测把 SQL 执行整个 mock 掉，所以这些
+        问题一个都没被发现。现在 <code class="inline">verify_live.py</code> 18 项全过，
+        截图与 SQL 证据见仓库 <code class="inline">docs/verification.md</code>。
       </div>
     </div>
   </section>

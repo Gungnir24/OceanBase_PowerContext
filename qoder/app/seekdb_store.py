@@ -95,6 +95,7 @@ class SeekDBStore:
             connect_timeout=6,
             read_timeout=30,
             write_timeout=30,
+            cursorclass=pymysql.cursors.DictCursor,
         )
         if with_database:
             kwargs["database"] = self.database
@@ -159,6 +160,7 @@ class SeekDBStore:
                         id VARCHAR(64) NOT NULL PRIMARY KEY,
                         paper_id VARCHAR(64) NOT NULL,
                         scope_id VARCHAR(128) NOT NULL,
+                        title VARCHAR(512) NOT NULL DEFAULT '',
                         chunk_index INT NOT NULL,
                         section VARCHAR(255) NOT NULL DEFAULT '',
                         content TEXT NOT NULL,
@@ -207,10 +209,63 @@ class SeekDBStore:
         finally:
             connection.close()
 
+        self._migrate_schema()
         self._ensure_vector_index()
         self._ensure_fulltext_index()
+        self._verify_schema()
+
+    def _migrate_schema(self) -> None:
+        """老库升级：CREATE TABLE IF NOT EXISTS 不会给已存在的表补列。"""
+        rows = self._execute(
+            """
+            SELECT COLUMN_NAME AS name FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'chunks'
+            """,
+            (self.database,),
+        )
+        columns = {str(row["name"]).lower() for row in rows}
+        if "title" in columns:
+            return
+        self._execute(
+            "ALTER TABLE chunks ADD COLUMN title VARCHAR(512) NOT NULL DEFAULT ''"
+        )
+        # 回填：切片标题从 papers 同步，保证老数据也能给出可读引用。
+        self._execute(
+            """
+            UPDATE chunks c JOIN papers p ON p.id = c.paper_id
+            SET c.title = p.title
+            WHERE c.title = ''
+            """
+        )
+        self.warnings.append("已为 chunks 补充 title 列并回填历史切片标题")
+
+    def _verify_schema(self) -> None:
+        """启动自检：检索 SQL 依赖的列必须真实存在，缺列时快速失败。"""
+        checks = (
+            ("chunks", "id, paper_id, scope_id, title, section, chunk_index, content, "
+                       "embedding, year, venue, tags"),
+            ("papers", "id, title, authors, year, venue, tags, source_name, content"),
+        )
+        for table, columns in checks:
+            try:
+                self._execute(f"SELECT {columns} FROM {table} LIMIT 0")
+            except Exception as exc:  # noqa: BLE001 - 统一转成可读的启动错误
+                raise SeekDBError(
+                    f"seekdb 表结构自检失败（{table}）：{exc}。"
+                    "请执行 python scripts/init_db.py 升级表结构后重启。"
+                ) from exc
+
+    def _has_index(self, table: str, name: str) -> bool:
+        try:
+            rows = self._execute(f"SHOW INDEX FROM {table}")
+        except Exception:  # noqa: BLE001 - 表不存在时按“没有索引”处理
+            return False
+        return any(str(row.get("Key_name", "")).lower() == name.lower() for row in rows)
 
     def _ensure_vector_index(self) -> None:
+        if self._has_index("chunks", "idx_chunks_vec"):
+            self.vector_index = True
+            return
         last = ""
         for statement in (
             "CREATE VECTOR INDEX idx_chunks_vec ON chunks (embedding) "
@@ -232,6 +287,9 @@ class SeekDBStore:
         self.warnings.append(f"向量索引创建失败，退化为精确扫描：{last[:200]}")
 
     def _ensure_fulltext_index(self) -> None:
+        if self._has_index("chunks", "idx_chunks_fts"):
+            self.fts_available = True
+            return
         attempts = [
             f"CREATE FULLTEXT INDEX idx_chunks_fts ON chunks (content) WITH PARSER {self.cfg.fts_parser}",
             "CREATE FULLTEXT INDEX idx_chunks_fts ON chunks (content) WITH PARSER ngram",
@@ -296,14 +354,15 @@ class SeekDBStore:
                     cursor.execute(
                         f"""
                         INSERT INTO chunks
-                            (id, paper_id, scope_id, chunk_index, section, content,
+                            (id, paper_id, scope_id, title, chunk_index, section, content,
                              embedding, year, venue, tags)
-                        VALUES (%s, %s, %s, %s, %s, %s, {literal}, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, {literal}, %s, %s, %s)
                         """,
                         (
                             chunk_id,
                             paper_id,
                             scope_id,
+                            document.title,
                             index,
                             (section or "")[:255],
                             content,
@@ -440,7 +499,9 @@ class SeekDBStore:
 
         # 2) 全文通道：seekdb MATCH ... AGAINST。
         terms = tokens_for_query(query)
-        fts_query = " ".join(_sanitize_term(term) for term in terms)
+        fts_query = " ".join(
+            term for term in (_sanitize_term(item) for item in terms) if term
+        )
         fts_sql = ""
         if fts_query:
             fts_sql, fts_params = self._fts_clause(where, params, fts_query)

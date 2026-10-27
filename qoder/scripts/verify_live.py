@@ -56,6 +56,10 @@ def main() -> int:
     check(health.get("seekdb", {}).get("ok") is True, f"seekdb 已连接（{health['seekdb'].get('version')}）")
     check(health.get("powercontext", {}).get("ok") is True, f"PowerContext 已连接（scope={health.get('scope_id')}）")
     check(health.get("seekdb", {}).get("fts_available") is True, "全文索引可用（不是 LIKE 退化路径）")
+    check(
+        health.get("seekdb", {}).get("vector_index") is True,
+        "向量索引可用（ANN 未退化为精确扫描）",
+    )
     if not health.get("seekdb", {}).get("ok"):
         return 1
 
@@ -72,6 +76,20 @@ def main() -> int:
     citations = answer.get("citations", [])
     check(len(answer.get("answer", "")) > 40, f"回答长度 {len(answer.get('answer', ''))} 字")
     check(len(citations) >= 1, f"返回 {len(citations)} 条带出处引用")
+    check(
+        not answer.get("search", {}).get("warning"),
+        "检索通道无报错（两条 SQL 都成功执行）",
+    )
+    check(
+        bool(citations) and all(item.get("title") for item in citations),
+        "每条引用都带非空的文献标题",
+    )
+    check(
+        (answer.get("search", {}).get("vector_candidates") or 0) > 0
+        and (answer.get("search", {}).get("fts_candidates") or 0) > 0,
+        f"两路召回均有候选（向量 {answer.get('search', {}).get('vector_candidates')} / "
+        f"全文 {answer.get('search', {}).get('fts_candidates')}）",
+    )
     check(len(answer.get("memories", [])) >= 1, f"命中 {len(answer.get('memories', []))} 条研究记忆")
     if citations:
         first = citations[0]

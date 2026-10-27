@@ -33,7 +33,7 @@
 | 文献库 | Markdown/文本导入，自动解析 `title / authors / year / venue / tags`，切片后入库 | seekdb |
 | 混合检索 | 向量 HNSW 召回 + 全文 `MATCH ... AGAINST` 召回，RRF 融合，结构化条件下推 SQL | seekdb |
 | 带引用问答 | 回答里的 `[1] [2]` 对应证据原文、切片 ID、命中通道与 RRF 分数 | seekdb |
-| 研究记忆 | 写入/停用研究方向、偏好、约束、决策、进展；每轮问答与周报自动召回 | PowerContext |
+| 研究记忆 | 写入/停用研究方向、偏好、约束、决策、进展；每轮问答与周报自动召回，提问未命中时按常驻主题兜底 | PowerContext |
 | 有界上下文 | 生成前调用 `context/prepare`，把记忆压到字节预算内再交给模型 | PowerContext |
 | 组会周报 | 汇总本周行为 + 检索证据 + 进展记忆，生成 Markdown，可一键归档为 Source 与记忆 | 两者 |
 | 技术核验 | 页面直接展示 seekdb 检索日志与 PowerContext 调用记录，评审可核对 | 两者 |
@@ -110,6 +110,10 @@ powercontext server run
 默认监听 `http://127.0.0.1:8000`，使用 SQLite 持久化；不需要模型即可保存/检索显式 Memory。
 若启用鉴权，把 token 填到 `.env` 的 `POWERCONTEXT_TOKEN`。
 
+> Windows 下若启动时报 `attempt to write a readonly database` 或
+> `PermissionError ... cursor-key`，说明默认数据目录（`%LOCALAPPDATA%\PowerContext`）
+> 在当前账户下不可写：先 `$env:POWERCONTEXT_HOME="D:\pc-home"` 再启动 Server 即可。
+
 ### 4.4 配置并启动应用
 
 ```bash
@@ -119,7 +123,7 @@ cp .env.example .env          # Windows: Copy-Item .env.example .env
 # 按需修改 SEEKDB_*、POWERCONTEXT_*
 
 python scripts/init_db.py     # 建表 + 向量/全文索引，并打印索引状态
-python scripts/seed.py --with-memory   # 导入 4 篇示例材料 + 4 条示例记忆
+python scripts/seed.py --with-memory   # 导入 4 篇示例材料 + 5 条示例记忆
 python app/server.py          # 或 .\scripts\run.ps1 / ./scripts/run.sh
 ```
 
@@ -146,8 +150,8 @@ python app/server.py --demo
 python scripts/seed.py --with-memory
 ```
 
-预期：输出 4 篇材料与切片数；`python scripts/init_db.py` 显示
-`vector index: HNSW`、`fulltext index: 可用`。
+预期：输出 4 篇材料（24 个切片）与 5 条记忆；`python scripts/init_db.py` 显示
+`vector index: HNSW`、`fulltext index: 可用`。若显示"退化为精确扫描"，说明向量索引没建成。
 
 ### 步骤 2：混合检索问答
 
@@ -159,7 +163,8 @@ python scripts/seed.py --with-memory
 
 - 回答带 `[1] [2]` 引用，正文出现 `Recall@10`、`k=20/60/100` 等来自示例材料的细节；
 - 右侧「本轮用到的记忆」出现研究方向、偏好、约束、进展；
-- 「检索通道」显示向量候选与全文候选均大于 0，耗时以毫秒计。
+- 「检索通道」显示向量候选与全文候选均大于 0（实测 12 / 12），耗时以毫秒计；
+- 每条形如《文献标题》的引用都非空（标题来自 `chunks.title`）。
 
 **技术作用记录**：进入「技术核验」，`seekdb 检索日志` 最新一行应包含本次查询、
 `vector+fts`、融合 Top3 的 chunk_id 与耗时；`PowerContext 调用记录` 应出现
@@ -196,8 +201,8 @@ FROM retrieval_logs ORDER BY id DESC LIMIT 3;
 python scripts/verify_live.py
 ```
 
-脚本会对运行中的应用执行上述主流程，逐项打印 PASS/FAIL，并输出首条引用、检索通道、
-记忆召回与日志条数。全部 PASS 时退出码为 0。
+脚本会对运行中的应用执行上述主流程，逐项打印 PASS/FAIL（当前 18 项），并输出首条引用、
+检索通道、记忆召回与日志条数。全部 PASS 时退出码为 0。
 
 ## 6. 配置项
 
@@ -231,7 +236,7 @@ cd qoder
 python -m unittest discover -s tests -v
 ```
 
-当前 47 个用例全部通过，覆盖：
+当前 54 个用例全部通过（其中 3 个真库集成用例默认跳过，设置 `SEEKDB_LIVE=1` 才跑），覆盖：
 
 - 文档解析/切片/ID 稳定性（`test_ingest.py`）
 - 本地向量、归一化、中文分词、向量字面量（`test_embeddings.py`）
@@ -241,6 +246,10 @@ python -m unittest discover -s tests -v
 - 抽取式回答与周报结构（`test_generation.py`）
 - demo 模式 API 端到端：健康检查、导入、问答、记忆、周报、日志、增删文献、404
   （`test_api_demo.py`）
+- 表结构契约：检索 SQL 引用的列必须在建表语句里真实存在，这条用例专门拦
+  `chunks.title` 这类"SQL 与表结构脱节"的事故（`test_schema_contract.py`）
+- 真实 seekdb 集成：建表 → 导入 → 向量/全文混合检索 → 检索日志，断言两路候选 > 0、
+  每条命中都带标题（`test_seekdb_live.py`，需 `SEEKDB_LIVE=1`）
 
 ## 8. 目录结构
 
@@ -259,7 +268,7 @@ qoder/
 │   └── static/            # 原生 JS 单页
 ├── data/samples/          # 虚构示例文献与笔记
 ├── scripts/               # init_db / seed / verify_live / run
-├── tests/                 # 47 个测试
+├── tests/                 # 54 个测试（含真库集成用例）
 ├── docs/                  # 架构、验证记录、Qoder 开发记录、截图
 ├── site/                  # Qoder Sites 发布用静态站
 ├── docker-compose.yml     # seekdb
@@ -269,9 +278,13 @@ qoder/
 
 ## 9. 已知限制
 
-- **本机未跑过 live 链路**：开发环境没有 Docker，且外网不可达，seekdb 与 PowerContext
-  Server 无法启动；因此本仓库的 live 路径是通过单元测试、假 PowerContext 服务与 demo
-  API 端到端测试验证的。`scripts/verify_live.py` 是给评审在有 Docker 的环境下一键复现用的。
+- **live 链路已在真库跑通**：2026-10-27 在 Windows 11 + Docker（`oceanbase/seekdb:latest`，
+  `seekdb-v1.4.0.0`）+ PowerContext 1.2.0 上执行 `scripts/verify_live.py`，18 项全部 PASS，
+  输出与 SQL 证据见 `docs/verification.md`。本次同时修掉了三个只在真实数据库上才暴露的
+  问题：`chunks` 缺 `title` 列、cursor 未用 `DictCursor`、向量索引幂等误判。
+- **记忆召回依赖词面**：PowerContext 未配置 embedding 模型时按全文召回，中文短问句可能
+  0 命中；应用在命中为空时会按常驻主题（研究方向/偏好/约束/进展）再召回一次，页面会标注
+  "按常驻主题召回"。配置模型后可去掉该兜底。
 - 本地哈希向量只捕捉词面相近，同义改写召回有限；生产建议换真实 embedding。
 - 目前是单用户/单 scope 设计；多用户需要按用户分配 scope，并在网关上做鉴权。
 - PDF 未直接解析，需先转成 Markdown/文本；表格行作为独立证据单元尚未实现。

@@ -152,7 +152,9 @@ class PowerContextClient:
             try:
                 state = json.loads(self._state_path.read_text(encoding="utf-8"))
                 scope_id = str(state.get("scope_id", "")).strip()
-                if scope_id:
+                # 服务端数据可能被清空或换了实例，缓存里的 scope 会 404；
+                # 这种情况必须重建，否则后续每次记忆读写都会失败。
+                if scope_id and self._scope_exists(scope_id):
                     self.scope_id = scope_id
                     return scope_id
             except (json.JSONDecodeError, OSError):
@@ -178,6 +180,21 @@ class PowerContextClient:
             encoding="utf-8",
         )
         return self.scope_id
+
+    def _scope_exists(self, scope_id: str) -> bool:
+        """用一个轻量读接口确认 scope 在服务端仍然存在。"""
+        try:
+            self._request(
+                "POST",
+                "/v1/memory/entries/list",
+                {"scope_id": scope_id, "include_inactive": False},
+            )
+            return True
+        except PowerContextError as exc:
+            if exc.status == 404:
+                return False
+            # 鉴权失败、网络抖动等不应被当成 scope 失效，否则会误建重复 scope。
+            return True
 
     def _find_scope(self, title: str) -> str:
         from urllib.parse import quote

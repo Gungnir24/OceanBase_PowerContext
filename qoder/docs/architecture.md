@@ -40,7 +40,7 @@ papers(
 
 chunks(
   id VARCHAR(64) PK, paper_id, scope_id, chunk_index, section,
-  content TEXT, embedding VECTOR(384), year, venue, tags, created_at,
+  title VARCHAR(512), content TEXT, embedding VECTOR(384), year, venue, tags, created_at,
   VECTOR INDEX idx_chunks_vec (embedding)
     WITH (DISTANCE=l2, TYPE=hnsw, LIB=vsag),
   FULLTEXT INDEX idx_chunks_fts (content) WITH PARSER ik
@@ -57,6 +57,9 @@ retrieval_logs(
 设计要点：
 
 - `chunks` 冗余 `year/venue/tags`，检索时无需 join `papers` 就能下推过滤；
+- `chunks` 同时冗余 `title`：回答里的引用必须显示文献标题，而 ANN 检索要保持单表
+  `ORDER BY distance APPROXIMATE`（join 会让近似检索的代价与可读性都变差）。老库启动时
+  会自动 `ALTER TABLE` 补列并从 `papers` 回填，不需要重建库；
 - `embedding` 与 `content` 同表，向量与全文两路 SQL 命中同一批行，融合成本低；
 - 索引创建做了三级回退：`vsag` → 无 LIB 的 HNSW → 精确扫描；全文 `ik` → `ngram` →
   默认解析器。失败原因写入 `warnings`，页面「技术核验」可见；
