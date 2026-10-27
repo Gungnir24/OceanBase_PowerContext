@@ -46,6 +46,7 @@ dify/
 ├── tools/
 │   ├── init_scope.py                # 创建 Scope，拿到 scope_id
 │   ├── smoke_test.py                # 端到端记忆闭环自测（不需要 Dify）
+│   ├── test_code_nodes.py           # 两段 Code 节点的单元测试（42 项边界用例）
 │   └── validate_dsl.py              # 导入前的 DSL 静态校验
 └── evidence/
     └── logs/                        # 实际运行日志与证据（smoke-*.md / smoke-*.json）
@@ -145,4 +146,4 @@ python tools/init_scope.py --base-url http://127.0.0.1:18080
 - Dify 版本：DSL 基于 **1.18.x**（`version: 0.7.0`），1.17.x 亦可导入
 - PowerContext：**1.4.1**（PyPI `powercontext[cli,server]`）
 - 模型：DeepSeek `deepseek-chat`（可替换）
-- 复现命令：`tools/validate_dsl.py`、`tools/init_scope.py`、`tools/smoke_test.py`
+- 复现命令：`tools/validate_dsl.py`、`tools/test_code_nodes.py`、`tools/init_scope.py`、`tools/smoke_test.py`
