@@ -131,6 +131,8 @@ class DeepSeekModel:
     def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com", model: str = "deepseek-chat"):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
+        if self.base_url.endswith("/v1"):
+            self.base_url = self.base_url[:-3]
         self.model = model
 
     def reply(self, system: str, user: str, ledger: str, grudge: int) -> str:
@@ -153,8 +155,14 @@ class DeepSeekModel:
             },
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=120) as response:
-            body = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode("utf-8", errors="replace")[:400]
+            raise SystemExit(f"调用 DeepSeek 失败：HTTP {error.code} {detail}") from error
+        except urllib.error.URLError as error:
+            raise SystemExit(f"连不上 DeepSeek（{self.base_url}）：{error.reason}") from error
         return body["choices"][0]["message"]["content"]
 
 
@@ -168,6 +176,10 @@ def main() -> int:
     parser.add_argument("--dsl", type=Path, default=DEFAULT_DSL)
     parser.add_argument("--scope-id", default="", help="复用已有 Scope；不填则自动新建")
     parser.add_argument("--model", choices=["stub", "deepseek"], default="stub")
+    parser.add_argument("--llm-model", default=os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"),
+                        help="--model deepseek 时使用的模型名")
+    parser.add_argument("--llm-base", default=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+                        help="--model deepseek 时的 API 地址")
     parser.add_argument("--turns", type=int, default=len(SCRIPT))
     parser.add_argument("--evidence-dir", type=Path, default=ROOT / "evidence" / "logs")
     args = parser.parse_args()
@@ -182,7 +194,7 @@ def main() -> int:
         key = os.environ.get("DEEPSEEK_API_KEY", "")
         if not key:
             raise SystemExit("--model deepseek 需要先设置环境变量 DEEPSEEK_API_KEY")
-        model: Any = DeepSeekModel(key)
+        model: Any = DeepSeekModel(key, base_url=args.llm_base, model=args.llm_model)
     else:
         model = StubModel()
 
@@ -311,6 +323,7 @@ def main() -> int:
         "powercontext_base_url": args.base_url,
         "scope_id": scope_id,
         "model": model.name,
+        "llm_model": getattr(model, "model", "rule-based"),
         "dsl": str(args.dsl),
         "grudge_series": grudge_series,
         "checks": [{"name": n, "passed": ok, "detail": d} for n, ok, d in checks],

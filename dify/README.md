@@ -35,6 +35,7 @@ dify/
 ├── dsl/
 │   └── grudge-inn.yml               # ★ 提交的 Dify DSL（Chatflow，8 个节点）
 ├── docs/
+│   ├── 00-评审快速检查表.md          # ★ 10 分钟评审路径（先看这个）
 │   ├── 01-部署与运行.md              # 从零到跑起来的完整步骤
 │   ├── 02-验证样例与证据.md          # 可逐步执行的样例 + 实际运行记录
 │   └── 03-技术结合说明.md            # Dify / PowerContext / seekdb 各自的分工
