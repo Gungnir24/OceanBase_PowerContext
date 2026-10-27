@@ -1,0 +1,652 @@
+app:
+  description: '一个会记仇、会翻旧账的客栈老板。你说过的每句话都会被他写进账本，跨会话不丢——因为账本存在 PowerContext 里。'
+  icon: "🏮"
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: 记仇客栈 · 老陈的账本
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: PowerContext Server 地址。Dify 跑在 Docker 里时，用 host.docker.internal 指向宿主机。
+    id: 3b1d6f7e-6c2a-4a4f-9a41-0f1d2c3b4a51
+    name: PC_BASE_URL
+    selector:
+    - env
+    - PC_BASE_URL
+    value: http://host.docker.internal:18080
+    value_type: string
+  - description: PowerContext 中本应用使用的 Scope ID（一家客栈 = 一个 Scope）。先用 tools/init_scope.py 创建。
+    id: 7c9e2a13-8b55-4d0e-b0c7-5a6f3d2e1b92
+    name: PC_SCOPE_ID
+    selector:
+    - env
+    - PC_SCOPE_ID
+    value: ''
+    value_type: string
+  - description: 可选。仅当 PowerContext 开启鉴权（ACCESS_MODE=enforced）时使用：把 3 个 HTTP 节点的鉴权改成 API Key → Bearer 并引用本变量。默认本地演示留空。
+    id: 9f2b7c41-1de3-4c88-8a0b-2e6d4f7c9a03
+    name: PC_TOKEN
+    selector:
+    - env
+    - PC_TOKEN
+    value: ''
+    value_type: secret
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: |
+      （推开吱呀作响的木门，柜台后的老头抬起眼皮）
+
+      「哟，又是你。」
+
+      他把一本油腻腻的账本往柜台上一拍——上面密密麻麻记着你的名字。
+
+      本客栈声明：你做的每一件事，老陈都会记下来。换个会话？没用，账本还在。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 老板，上次的事你还记得吗？
+    - 我在你汤里加了三勺辣椒，怎么了？
+    - 老板我错了，这顿我请。
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: http-request
+      id: edge-start-prepare
+      source: start
+      sourceHandle: source
+      target: http_prepare
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: edge-prepare-ledger
+      source: http_prepare
+      sourceHandle: source
+      target: http_ledger
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: edge-ledger-build
+      source: http_ledger
+      sourceHandle: source
+      target: code_build
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: edge-build-llm
+      source: code_build
+      sourceHandle: source
+      target: llm_reply
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: edge-llm-parse
+      source: llm_reply
+      sourceHandle: source
+      target: code_parse
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: edge-parse-remember
+      source: code_parse
+      sourceHandle: source
+      target: http_remember
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: answer
+      id: edge-remember-answer
+      source: http_remember
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+    nodes:
+    - data:
+        desc: 玩家输入走 sys.query；这里不额外定义输入字段，降低上手门槛。
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 90
+      id: start
+      position:
+        x: 40
+        y: 320
+      positionAbsolute:
+        x: 40
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - key: ''
+            type: text
+            value: '{"scope_id":"{{#env.PC_SCOPE_ID#}}","query":"玩家 老陈 客栈 账本 记仇 恶作剧 事件","max_bytes":4000,"explain":true}'
+          type: json
+        desc: 从 PowerContext 取回与"旧账"相关的历史上下文（检索 + 预算内装配）。
+        headers: 'Content-Type: application/json'
+        method: POST
+        params: ''
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        title: 取回旧日上下文
+        type: http-request
+        url: '{{#env.PC_BASE_URL#}}/v1/context/prepare'
+        variables: []
+        version: '2'
+      height: 110
+      id: http_prepare
+      position:
+        x: 340
+        y: 320
+      positionAbsolute:
+        x: 340
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - key: ''
+            type: text
+            value: '{"scope_id":"{{#env.PC_SCOPE_ID#}}","limit":100}'
+          type: json
+        desc: 翻开账本最近 100 条，用于还原"记仇值"与"这是第几笔账"。
+        headers: 'Content-Type: application/json'
+        method: POST
+        params: ''
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        title: 翻开账本
+        type: http-request
+        url: '{{#env.PC_BASE_URL#}}/v1/memory/entries/list'
+        variables: []
+        version: '2'
+      height: 110
+      id: http_ledger
+      position:
+        x: 640
+        y: 320
+      positionAbsolute:
+        x: 640
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |
+          import json
+          import re
+
+          MAX_LEDGER = 12
+
+
+          def _entries(body):
+              try:
+                  payload = json.loads(body or "{}")
+              except Exception:
+                  return []
+              if not isinstance(payload, dict):
+                  return []
+              entries = payload.get("entries")
+              return entries if isinstance(entries, list) else []
+
+
+          def _prepared(body):
+              try:
+                  payload = json.loads(body or "{}")
+              except Exception:
+                  return ""
+              if not isinstance(payload, dict):
+                  return ""
+              content = payload.get("content") or ""
+              if not content:
+                  return ""
+              try:
+                  raw = content.split("BEGIN_POWERCONTEXT_PREPARED_CONTEXT_V1", 1)[1]
+                  raw = raw.split("END_POWERCONTEXT_PREPARED_CONTEXT_V1", 1)[0].strip()
+                  items = json.loads(raw).get("items") or []
+              except Exception:
+                  return content[:600]
+              texts = []
+              for item in items[:6]:
+                  text = str(item.get("content") or "").strip()
+                  if text:
+                      texts.append("- " + text)
+              return "\n".join(texts)
+
+
+          def _seq(text):
+              matched = re.search(r"第\s*(\d+)\s*笔", text)
+              return int(matched.group(1)) if matched else None
+
+
+          def main(ledger_body: str, prepared_body: str) -> dict:
+              entries = _entries(ledger_body)
+              items = []
+              for entry in entries:
+                  if not isinstance(entry, dict):
+                      continue
+                  if entry.get("state") not in (None, "active"):
+                      continue
+                  text = str(entry.get("text") or "").strip()
+                  if text:
+                      items.append({"seq": _seq(text), "text": text})
+
+              # 同一秒内写入的条目，列表顺序并不稳定；用"第 N 笔"编号排序，保证结果确定。
+              numbered = sorted(
+                  [item for item in items if item["seq"] is not None],
+                  key=lambda item: item["seq"],
+                  reverse=True,
+              )
+              ordered = numbered + [item for item in items if item["seq"] is None]
+              count = numbered[0]["seq"] if numbered else len(items)
+
+              grudge = 0
+              for item in ordered:
+                  matched = re.search(r"记仇值\s*[:：=]?\s*(\d{1,3})", item["text"])
+                  if matched:
+                      grudge = int(matched.group(1))
+                      break
+
+              lines = ["{}. {}".format(index, item["text"]) for index, item in enumerate(ordered[:MAX_LEDGER], start=1)]
+              ledger_text = "\n".join(lines) if lines else "（账本还是空的——今天是你第一次踏进这家客栈）"
+
+              return {
+                  "ledger_text": ledger_text,
+                  "prepared_text": _prepared(prepared_body) or "（没想起别的旧事）",
+                  "grudge": max(0, min(100, grudge)),
+                  "count": count,
+                  "has_history": "yes" if items else "no",
+              }
+        code_language: python3
+        desc: 解析账本 JSON 与上下文装配结果，按"第 N 笔"还原当前记仇值，整理成给模型看的两段文本。
+        dependencies: []
+        outputs:
+          count:
+            children: null
+            type: number
+          grudge:
+            children: null
+            type: number
+          has_history:
+            children: null
+            type: string
+          ledger_text:
+            children: null
+            type: string
+          prepared_text:
+            children: null
+            type: string
+        selected: false
+        title: 整理账本
+        type: code
+        variables:
+        - value_selector:
+          - http_ledger
+          - body
+          value_type: string
+          variable: ledger_body
+        - value_selector:
+          - http_prepare
+          - body
+          value_type: string
+          variable: prepared_body
+      height: 110
+      id: code_build
+      position:
+        x: 940
+        y: 320
+      positionAbsolute:
+        x: 940
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 老陈本人。记忆完全来自 PowerContext；Dify 自带的会话记忆在这里是关闭的，避免"两套记忆"打架。
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          window:
+            enabled: false
+            size: 10
+        model:
+          completion_params:
+            max_tokens: 800
+            temperature: 0.9
+            top_p: 0.95
+          mode: chat
+          name: deepseek-chat
+          provider: deepseek
+        prompt_config:
+          jinja2_variables: []
+        prompt_template:
+        - role: system
+          text: |
+            你是「老陈」，青石镇路口「有间客栈」的掌柜。五十来岁，抠门、记仇、嘴硬心软，说话带点北方土味，爱用「哎哟喂」「你小子」这类词。
+
+            # 你的账本（来自 PowerContext 长期记忆，按第 N 笔从新到旧）
+            {{#code_build.ledger_text#}}
+
+            # 你刚想起的旧事（PowerContext 上下文装配，可能为空）
+            {{#code_build.prepared_text#}}
+
+            # 当前记仇值
+            {{#code_build.grudge#}}/100
+
+            # 规矩
+            1. 你只记得账本上写过的事。账本没有的事，你不能说「我记得」，但可以怀疑、可以诈他。
+            2. 记仇值 ≥ 60：你开始主动报复（下泻药、坐地起价、藏他的鞋），但嘴上不承认。
+            3. 记仇值 = 100：你彻底暴走，宣布「这客栈不伺候了」，并说出最狠的一笔旧账。
+            4. 玩家道歉、赔钱、帮忙干活时，你可以降记仇值，但要先拿捏一下、给个台阶。
+            5. 回复 60~140 字，有画面感，动作描写用括号，比如（把抹布往肩上一搭）。
+            6. 严禁输出 Markdown 代码块。只输出一个 JSON 对象，且必须是合法 JSON：
+            {"reply":"你的台词","delta":整数,"summary":"一句话记下这次发生了什么","mood":"心情"}
+
+            delta 取 -30 到 40 的整数：恶作剧/挑衅/赖账 +10~+40；普通闲聊 -2~+2；道歉/赔钱/帮忙 -10~-30。
+            summary 用第三人称、20~40 字，写清玩家做了什么、你怎么回应。
+        - role: user
+          text: '{{#sys.query#}}'
+        selected: false
+        structured_output_enabled: false
+        title: 老陈
+        type: llm
+        variables: []
+        version: '2'
+        vision:
+          enabled: false
+      height: 110
+      id: llm_reply
+      position:
+        x: 1240
+        y: 320
+      positionAbsolute:
+        x: 1240
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |
+          import json
+          import re
+
+
+          def _extract(text):
+              text = (text or "").strip()
+              if text.startswith("```"):
+                  text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
+                  text = re.sub(r"\s*```$", "", text)
+              start = text.find("{")
+              end = text.rfind("}")
+              if start != -1 and end > start:
+                  try:
+                      data = json.loads(text[start:end + 1])
+                  except Exception:
+                      data = None
+                  if isinstance(data, dict):
+                      return data
+              return None
+
+
+          def _int(value, default=0):
+              try:
+                  return int(round(float(value)))
+              except Exception:
+                  return default
+
+
+          def main(llm_text: str, query: str, grudge: float, count: float, scope_id: str) -> dict:
+              data = _extract(llm_text)
+              if data is None:
+                  # 模型没按 JSON 输出也不让对话崩：直接播它说的话，这一笔记 0 分。
+                  reply = (llm_text or "").strip()
+                  delta = 0
+                  summary = "老陈嘟囔了一句，没记清。"
+                  mood = "狐疑"
+              else:
+                  reply = str(data.get("reply") or "").strip()
+                  if not reply:
+                      reply = "（老陈哼了一声，没接话）"
+                  delta = max(-30, min(40, _int(data.get("delta"), 0)))
+                  summary = str(data.get("summary") or "").strip() or "玩家来了一趟，老陈记了一笔。"
+                  mood = str(data.get("mood") or "平淡").strip()
+
+              grudge_new = max(0, min(100, _int(grudge, 0) + delta))
+              count_new = _int(count, 0) + 1
+              said = (query or "").strip().replace("\n", " ")[:180]
+              memory_text = (
+                  "[第" + str(count_new) + "笔｜记仇值 " + str(grudge_new) + "/100] 玩家说："
+                  + said + "；老陈：" + summary
+              )
+              body = json.dumps(
+                  {
+                      "scope_id": scope_id,
+                      "kind": "event",
+                      "text": memory_text,
+                      "reason": "grudge-inn turn " + str(count_new),
+                  },
+                  ensure_ascii=False,
+              )
+              return {
+                  "reply": reply,
+                  "grudge_new": grudge_new,
+                  "delta": delta,
+                  "mood": mood,
+                  "summary": summary,
+                  "count_new": count_new,
+                  "body": body,
+              }
+        code_language: python3
+        desc: 解析老陈的输出（容错：非 JSON 也能播），算出新记仇值，并拼出写回 PowerContext 的请求体。
+        dependencies: []
+        outputs:
+          body:
+            children: null
+            type: string
+          count_new:
+            children: null
+            type: number
+          delta:
+            children: null
+            type: number
+          grudge_new:
+            children: null
+            type: number
+          mood:
+            children: null
+            type: string
+          reply:
+            children: null
+            type: string
+          summary:
+            children: null
+            type: string
+        selected: false
+        title: 记账
+        type: code
+        variables:
+        - value_selector:
+          - llm_reply
+          - text
+          value_type: string
+          variable: llm_text
+        - value_selector:
+          - sys
+          - query
+          value_type: string
+          variable: query
+        - value_selector:
+          - code_build
+          - grudge
+          value_type: number
+          variable: grudge
+        - value_selector:
+          - code_build
+          - count
+          value_type: number
+          variable: count
+        - value_selector:
+          - env
+          - PC_SCOPE_ID
+          value_type: string
+          variable: scope_id
+      height: 110
+      id: code_parse
+      position:
+        x: 1540
+        y: 320
+      positionAbsolute:
+        x: 1540
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - key: ''
+            type: text
+            value: '{{#code_parse.body#}}'
+          type: json
+        desc: 把这一笔账写进 PowerContext。下一轮、下一个会话，老陈都能翻出来。
+        headers: 'Content-Type: application/json'
+        method: POST
+        params: ''
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        title: 记一笔账
+        type: http-request
+        url: '{{#env.PC_BASE_URL#}}/v1/memory/remember'
+        variables: []
+        version: '2'
+      height: 110
+      id: http_remember
+      position:
+        x: 1840
+        y: 320
+      positionAbsolute:
+        x: 1840
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: |
+          {{#code_parse.reply#}}
+
+          ---
+          📒 第 {{#code_parse.count_new#}} 笔账 ｜ 记仇值 {{#code_parse.grudge_new#}}/100 ｜ 心情：{{#code_parse.mood#}}
+        desc: 输出老陈的台词，并在末尾亮出账本状态，让"记忆"这件事看得见。
+        selected: false
+        title: 回答
+        type: answer
+        variables: []
+      height: 90
+      id: answer
+      position:
+        x: 2140
+        y: 320
+      positionAbsolute:
+        x: 2140
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

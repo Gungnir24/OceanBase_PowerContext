@@ -1,0 +1,67 @@
+# PowerContext Server（《记仇客栈》的记忆后端）
+#
+# 默认：SQLite 持久化，一条命令起服务，适合本地体验与评审复现。
+#    docker compose -f docker/docker-compose.powercontext.yml up -d
+#
+# seekdb 存储后端（Linux / macOS，需 pylibseekdb wheel）：
+#    docker compose -f docker/docker-compose.powercontext.yml --profile seekdb up -d powercontext-seekdb
+#  说明：seekdb 是 PowerContext 的嵌入式存储引擎之一；本文件把"记忆存在哪"显式化。
+#  Windows 下嵌入式 seekdb 不可用，请使用默认的 SQLite 服务。
+services:
+  powercontext:
+    image: python:3.12-slim
+    container_name: grudge-inn-powercontext
+    working_dir: /app
+    command:
+      - bash
+      - -lc
+      - |
+        pip install --no-cache-dir "powercontext[cli,server]==1.4.1" &&
+        powercontext server run --no-env-file
+    environment:
+      POWERCONTEXT_SERVER_HTTP_HOST: 0.0.0.0
+      POWERCONTEXT_SERVER_HTTP_PORT: "8000"
+      POWERCONTEXT_SERVER_ALLOW_UNAUTHENTICATED_NON_LOOPBACK: "true"
+      POWERCONTEXT_SERVER_ACCESS_MODE: disabled
+      POWERCONTEXT_SERVER_DASHBOARD_ENABLED: "true"
+      POWERCONTEXT_HOME: /data
+    ports:
+      - "127.0.0.1:18080:8000"
+    volumes:
+      - powercontext-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    restart: unless-stopped
+
+  powercontext-seekdb:
+    profiles: ["seekdb"]
+    image: python:3.12-slim
+    container_name: grudge-inn-powercontext-seekdb
+    working_dir: /app
+    command:
+      - bash
+      - -lc
+      - |
+        pip install --no-cache-dir "powercontext[cli,server,seekdb]==1.4.1" &&
+        powercontext server run --no-env-file
+    environment:
+      POWERCONTEXT_SERVER_HTTP_HOST: 0.0.0.0
+      POWERCONTEXT_SERVER_HTTP_PORT: "8000"
+      POWERCONTEXT_SERVER_ALLOW_UNAUTHENTICATED_NON_LOOPBACK: "true"
+      POWERCONTEXT_SERVER_ACCESS_MODE: disabled
+      POWERCONTEXT_SERVER_DASHBOARD_ENABLED: "true"
+      POWERCONTEXT_HOME: /data
+      POWERCONTEXT_SERVER_DATABASE_KIND: seekdb
+    ports:
+      - "127.0.0.1:18081:8000"
+    volumes:
+      - powercontext-seekdb-data:/data
+    restart: unless-stopped
+
+volumes:
+  powercontext-data:
+  powercontext-seekdb-data:
