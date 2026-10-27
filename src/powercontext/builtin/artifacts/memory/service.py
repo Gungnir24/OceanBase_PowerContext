@@ -1717,8 +1717,12 @@ class MemoryService:
         artifacts: Sequence[ArtifactRef],
     ) -> _EntryMaterial:
         normalized_kind = normalize_kind(kind)
-        normalized_text = normalize_text(text, source_refs=sources)
         canonical_sources = _canonical_source_refs(sources)
+        # Captured PDF pages must remain complete; other source-backed evidence
+        # retains its existing allowance, including Pi history and CSV records.
+        whole_page = bool(canonical_sources) and all(source.source_type == "pdf-page" for source in canonical_sources)
+        text_limit = None if whole_page else (1024 * 1024 if canonical_sources else 8192)
+        normalized_text = normalize_text(text, max_bytes=text_limit)
         canonical_artifacts = _canonical_artifact_refs(artifacts)
         source_refs = tuple(source.model_dump(mode="json") for source in canonical_sources)
         artifact_refs = tuple(artifact.model_dump(mode="json") for artifact in canonical_artifacts)
@@ -1824,7 +1828,7 @@ def _raise_if_write_held(plan: MemoryWritePlan) -> None:
 
 
 def _bounded_gate_evidence(identity: str, content: str) -> _GateEvidenceEntry:
-    normalized = normalize_text(content)
+    normalized = normalize_query(content)
     return _GateEvidenceEntry(
         text=f"{identity}\n{normalized[:_GATE_EVIDENCE_TEXT_LIMIT]}",
         complete=len(normalized) <= _GATE_EVIDENCE_TEXT_LIMIT,

@@ -1,8 +1,12 @@
 # PDF 全文采集与页级证据检索
 
-`powercontext.sources.pdf_pages` 接收完整 PDF 字节，使用环境中的 `pypdf` 按物理页顺序提取全部文本。空白页也形成页记录，物理页码从 1 开始，与正文中印刷的页码无关。
+`powercontext.sources.pdf_pages` 接收完整 PDF 字节，使用 `pypdf` 提取全部物理页，包括空白页。物理页码从 1 开始，与财报印刷页码无关。安装 PDF 可选依赖：
 
-## 采集页面
+```bash
+uv sync --locked --extra pdf
+```
+
+## 页面采集
 
 ```python
 from powercontext.sources import (
@@ -24,23 +28,21 @@ registry = SourceDefinitionRegistry((PDF_PAGE_SOURCE_DEFINITION,))
 await runtime.ingestion.register(manifest_for_definition(PDF_PAGE_SOURCE_DEFINITION))
 for page in pages:
     source = await registry.resolve(page)
-    observation = project_source_for_transport(registry, source)
     await runtime.ingestion.submit(
-        SubmitSourceObservation(scope_id=scope_id, observation=observation)
+        SubmitSourceObservation(
+            scope_id=scope_id,
+            observation=project_source_for_transport(registry, source),
+        )
     )
 ```
 
-页面记录保留完整输入字节的 SHA-256、原始文档 ID、物理页码和该页文本。Source 为 `CAPTURED`；其身份由文档 ID、文档摘要、物理页码组成的 JSON 数组摘要确定。更新 PDF 字节会产生新的页面身份，已保存的旧引用仍指向原修订。
+`PDFPageInput` 保存文档 ID、完整 PDF 字节的 SHA-256、物理页码和完整页文本。页记录与 `PDFPageSource` 均不可变；Source 的 `page` 字段保留原始页输入。Source 为 `CAPTURED`，身份由文档 ID、摘要、页码组成的 JSON 数组摘要确定。修改 PDF 字节会产生新的身份，历史引用仍指向原修订。
 
-`powercontext.text-evidence/1` 投影正文为文档 ID、换行和完整页文本，metadata 仅包含 `document_id`、`document_sha256`、`page_number`。解析器接受能够用空密码打开的权限标记 PDF；损坏或无法完整读取的输入以 `ValueError` 失败。
+标准 `powercontext.text-evidence/1` 投影正文为 `DOCUMENT_ID\nPAGE_TEXT`，metadata 恰好包含 `document_id`、`document_sha256` 和 `page_number`。输入、页码和摘要均严格校验。无需用户密码、可用空密码打开的权限 PDF 可读取；损坏的输入、内容流、文本指令或无法完整解析的页树以 `ValueError` 原子失败。
 
-解析器在提取前校验页面及 Form 的内容流，检查 Flate 解压完整性并解析内容指令，避免底层库把损坏的压缩正文静默恢复为空白页。所有页验证成功才返回结果；验证不改写提取文本。
+PDF 页级证据的 Memory 正文不设单条字节上限，避免长页截断或分割改变原投影。其他来源证据保留 1 MiB 上限，无来源记忆保留 8 KiB 上限。写入、历史读取和内容哈希支持完整长页，审核证据另行按既有审核预算截取。
 
-带有效 Source 引用的 Memory 正文支持最高 1 MiB 的 UTF-8 文本，使固定的整页 pipeline 可以保存超过 8 KiB 的密集页面，写入、历史读取和内容哈希均使用同一规则。普通无来源条目的 8 KiB 上限保留。Source 本身仍保存完整页文本，不截断或用摘要替代。
-
-## 搜索和回查
-
-页面经配置的 Memory pipeline 处理后，用已打开的 scoped Memory 检索：
+## 页级检索
 
 ```python
 from powercontext.builtin.runtime import GetMemoryEntryRequest
@@ -52,25 +54,16 @@ for citation in citations:
     entry = await memory.get(GetMemoryEntryRequest(citation=citation))
 ```
 
-搜索仅通过传入 Memory 的公开 `search` 和 `get` 接口获取数据。它采用离线财务词项扩展、词频重排、文档名称匹配和章节覆盖，保留多报表问题涉及的不同证据类型，再验证真实 PDF Source 引用并按页去重。返回值最多包含 `limit` 个精确 `MemoryCitation`；空问题或零上限返回空 tuple，负上限抛出 `ValueError`。
+`powercontext.sources.pdf_search` 通过当前 scoped Memory 的公开 `list` 读取可用 PDF 记录，通过 `search` 获取原生全文命中，再执行离线词项扩展、词频重排、相邻词组匹配、公司名称与缩写匹配，以及多报表覆盖。它按 PDF Source 身份去重并返回真实记录的精确 `MemoryCitation`，最多 `limit` 条。
 
-正式财务报表使用独立标题及其换行组合识别，不把脚注中“参见利润表”等提及误判为报表标题。检索加入通用章节查询并扩大有界候选池，减少多文档及冗长问句下的候选遗漏；规则不包含公司、问题或页码答案映射。
-
-文档名称匹配允许公司名在 ID 中连写、在问题中用空格或标点分隔，并优先采用匹配最完整的名称，避免共享单个词的其他公司排除目标文档。确认目标后，通过同一个 scoped Memory 的 `search` 补充文档页候选，再按原问题重排；正文或相关章节没有匹配的页面不会仅因文档名称命中而返回。报表名称支持单复数、合并利润与综合收益标题，并排除财务报表索引页。数值问题在较大返回预算下保留少量主要报表候选，覆盖跨表计算所需的原始信息。
-
-实现不读取文件路径、测评资产、答案或证据页清单，不调用模型或在线服务。查询处理仅影响检索排序，不改写持久化的原始页面文本。
+每次调用重新读取当前记录，词项缓存只保存文本分析结果，不保存引用或 scope 状态。公共入口保留空问题和零上限返回空 tuple 的兼容行为；其他调用使用非空字符串问题及正整数上限。检索不读取文件路径、答案、gold 或测评资产，不调用模型及在线服务，不改写原始页文本。
 
 ## 验证
 
-在公开评测的 Linux、Python 3.12 固定依赖环境中运行：
+公开自测使用固定的 Python 3.12 和依赖环境：
 
 ```bash
 make -C competition test-pdf
-python -m pytest -q tests/test_pdf_pages.py tests/e2e/test_pdf_page_retrieval.py tests/e2e/test_pdf_company_retrieval.py
 ```
 
-产品测试还覆盖物理空白页、表格数字、权限 PDF、后续页损坏、损坏及截断的压缩内容流、长页完整入库与重启回读、修订身份、重复 Memory 条目、非 PDF 干扰、多文档名称、scope 隔离，以及更新后的旧引用回查。
-
-开发时另外用公开的四份原始财报检查不同排版，连同公开样例共解析 1,079 个物理页，并在同一个数据库中入库、重启和回查。以本地 Poppler 从原始 PDF 提取的文本作独立对照，所有页面的词项数比例均处于 90%～110%，最低整页词项 F1 为 0.9811。这个对照只检查提取器之间的差异，不等同于 FinanceBench 官方质量验收。下载文件、对照文本和诊断数据库不进入产品代码，也不作为检索的额外输入。
-
-公开包不提供质量 gold。公开自测可以验证全页采集、持久化和引用合同，不能据此计算或宣称正式评测的词项质量指标及 evidence-page Recall@20。
+公开测试检查全部物理页、权限与损坏输入、真实持久化、重启和精确引用。公开包不提供质量 gold，公开自测通过不能代替官方的全文质量和 evidence-page Recall@20 验收。

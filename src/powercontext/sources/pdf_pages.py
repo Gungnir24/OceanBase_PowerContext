@@ -12,177 +12,214 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Complete offline PDF extraction and revision-specific page evidence."""
+"""Complete PDF pages as immutable captured evidence and scoped retrieval."""
 
 from __future__ import annotations
 
 import hashlib
 import io
 import json
-import re
+import logging
+import threading
 import zlib
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Literal, Self, cast
 
-from pydantic import BaseModel
-from pypdf import PdfReader
-from pypdf.filters import decode_stream_data
-from pypdf.generic import (
-    ArrayObject,
-    ContentStream,
-    DecodedStreamObject,
-    EncodedStreamObject,
-    NameObject,
-    NullObject,
-    StreamObject,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pypdf import PageObject, PdfReader
+from pypdf.generic import ArrayObject, DictionaryObject, NullObject, StreamObject
+from typing_extensions import override
 
-from powercontext.sources._pdf_search import search_pdf_pages
-from powercontext.sources.definitions import SourceDefinition, SourceProjection
+from powercontext.artifacts import MemoryCitation
+from powercontext.sources.definitions import AdapterSourceDefinition, SourceDefinition
 from powercontext.sources.models import Source, SourceMaterialization
 from powercontext.sources.projections import TEXT_EVIDENCE_PROJECTION_KEY, TextEvidence
 
+if TYPE_CHECKING:
+    from powercontext.builtin.runtime.application import ScopedMemoryApplication
+
 
 class PDFDocumentInput(BaseModel):
-    """A complete original PDF supplied without external file access."""
+    """An entire original PDF and its caller-owned document identifier."""
 
-    document_id: str
-    content: bytes
+    document_id: str = Field(strict=True)
+    content: bytes = Field(strict=True)
+
+    @field_validator("document_id")
+    @classmethod
+    def require_document_id(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("PDF document_id must not be blank")  # noqa: TRY003
+        return value
 
 
 class PDFPageInput(BaseModel):
-    """All extractable text on one physical page of one PDF revision."""
+    """One complete physical page, including pages with no extractable text."""
 
-    document_id: str
-    document_sha256: str
-    page_number: int
-    text: str
+    model_config = ConfigDict(frozen=True)
 
+    document_id: str = Field(strict=True)
+    document_sha256: str = Field(strict=True, pattern=r"^[0-9a-f]{64}$")
+    page_number: int = Field(strict=True, ge=1)
+    text: str = Field(strict=True)
 
-class PDFPageSource(Source):
-    """A captured page that keeps its original document revision and location."""
-
-    materialization: SourceMaterialization = SourceMaterialization.CAPTURED
-    source_id: str
-    document_id: str
-    document_sha256: str
-    page_number: int
-    text: str
-
-
-def _validate_document_id(document_id: str) -> None:
-    if not document_id.strip():
-        raise ValueError("PDF document_id must not be blank")  # noqa: TRY003
-
-
-def _strict_content_data(stream: StreamObject) -> bytes:
-    """Validate Flate integrity before pypdf's best-effort recovery can lose text."""
-    filters = stream.get("/Filter", ())
-    if hasattr(filters, "get_object"):
-        filters = filters.get_object()
-    if isinstance(filters, NullObject):
-        return stream._data
-    if not isinstance(filters, (tuple, ArrayObject)):
-        filters = (filters,)
-    parameters = stream.get("/DecodeParms", ())
-    if hasattr(parameters, "get_object"):
-        parameters = parameters.get_object()
-    if not isinstance(parameters, (tuple, ArrayObject)):
-        parameters = (parameters,)
-    data = stream._data
-    for index, filter_name in enumerate(filters):
-        filter_name = filter_name.get_object()
-        if filter_name in {"/FlateDecode", "/Fl"}:
-            decoder = zlib.decompressobj()
-            decoder.decompress(data, max_length=75_000_001)
-            if not decoder.eof or decoder.unconsumed_tail:
-                raise ValueError("Incomplete or excessive PDF content stream")  # noqa: TRY003
-        single = EncodedStreamObject()
-        single._data = data
-        single[NameObject("/Filter")] = filter_name
-        if index < len(parameters) and not isinstance(parameters[index], NullObject):
-            single[NameObject("/DecodeParms")] = parameters[index]
-        data = decode_stream_data(single)
-    return data
-
-
-def _form_contents(resource, visited: set[int]) -> list[StreamObject]:
-    result = []
-    resources = [resource]
-    while resources:
-        resource = resources.pop()
-        resource = resource.get_object() if hasattr(resource, "get_object") else resource
-        if resource is None or isinstance(resource, NullObject):
-            continue
-        xobjects = resource.get("/XObject")
-        xobjects = xobjects.get_object() if xobjects is not None else None
-        if xobjects is None or isinstance(xobjects, NullObject):
-            continue
-        for reference in xobjects.values():
-            stream = reference.get_object()
-            if stream.get("/Subtype") == "/Form" and id(stream) not in visited:
-                result.append(stream)
-                resources.append(stream.get("/Resources", {}))
-                visited.add(id(stream))
-    return result
-
-
-def _validate_page_contents(page, reader: PdfReader, visited: set[int]) -> None:
-    """Parse page/Form content even when missing resources cause extraction to skip it."""
-    pending = [page.get("/Contents"), *_form_contents(page.get("/Resources", {}), visited)]
-    while pending:
-        value = pending.pop()
-        if value is None or isinstance(value, NullObject):
-            continue
-        stream = value.get_object()
-        if isinstance(stream, NullObject):
-            continue
-        if isinstance(stream, ArrayObject):
-            pending.extend(stream)
-            continue
-        if not isinstance(stream, StreamObject):
-            raise TypeError("PDF content is not a stream")  # noqa: TRY003
-        decoded = DecodedStreamObject()
-        decoded.set_data(_strict_content_data(stream))
-        # Accessing operations forces tokenization instead of accepting malformed
-        # data as an empty page when the page has no font resources.
-        _ = ContentStream(decoded, reader).operations
+    @field_validator("document_id")
+    @classmethod
+    def require_document_id(cls, value: str) -> str:
+        return PDFDocumentInput.require_document_id(value)
 
 
 def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
-    """Extract every physical page or fail without returning partial pages."""
+    """Extract every physical page atomically; unreadable PDFs raise ValueError."""
 
-    _validate_document_id(value.document_id)
     digest = hashlib.sha256(value.content).hexdigest()
     try:
-        with io.BytesIO(value.content) as stream:
-            reader = PdfReader(stream, strict=True)
-            if reader.is_encrypted and not reader.decrypt(""):
-                raise ValueError("The PDF cannot be opened with an empty password")  # noqa: TRY003, TRY301
-            visited: set[int] = set()
-            for page in reader.pages:
-                _validate_page_contents(page, reader, visited)
-            pages = tuple(
-                PDFPageInput(
-                    document_id=value.document_id,
-                    document_sha256=digest,
-                    page_number=index,
-                    text=page.extract_text(extraction_mode="plain") or "",
-                )
-                for index, page in enumerate(reader.pages, start=1)
-            )
+        texts = _extract_page_texts(value.content)
     except Exception as error:
-        # pypdf can report corrupt objects through several parser/codec exception types.
-        raise ValueError("The complete PDF could not be parsed") from error  # noqa: TRY003
-    return pages
-
-
-def _page_identity(value: PDFPageInput) -> str:
-    _validate_document_id(value.document_id)
-    if re.fullmatch(r"[0-9a-f]{64}", value.document_sha256) is None or value.page_number < 1:
-        raise ValueError("PDF pages require a lowercase SHA-256 digest and positive physical page number")  # noqa: TRY003
-    components = json.dumps(
-        (value.document_id, value.document_sha256, value.page_number), ensure_ascii=False, separators=(",", ":")
+        # pypdf can surface malformed streams/fonts/page trees as several different
+        # exception types. Nothing escapes this boundary as a partially parsed tuple.
+        raise ValueError("Unable to parse the complete PDF document") from error  # noqa: TRY003
+    return tuple(
+        PDFPageInput(document_id=value.document_id, document_sha256=digest, page_number=index, text=text)
+        for index, text in enumerate(texts, start=1)
     )
-    return "pdf:" + hashlib.sha256(components.encode("utf-8")).hexdigest()
+
+
+def _extract_page_texts(content: bytes) -> tuple[str, ...]:
+    reader = PdfReader(io.BytesIO(content), strict=True)
+    if reader.is_encrypted and not reader.decrypt(""):
+        raise ValueError("PDF requires a password")  # noqa: TRY003
+    check = _ExtractionCheck()
+    logger = logging.getLogger("pypdf")
+    logger.addHandler(check)
+    try:
+        texts = tuple(_extract_page_text(page, check) for page in reader.pages)
+    finally:
+        logger.removeHandler(check)
+    if check.failed:
+        raise ValueError("PDF contains an unreadable text or form stream")  # noqa: TRY003
+    page_tree = reader.root_object["/Pages"]
+    if not isinstance(page_tree, DictionaryObject) or not texts or len(texts) != page_tree.get("/Count"):
+        raise ValueError("PDF page tree count does not match its complete pages")  # noqa: TRY003
+    return texts
+
+
+_TEXT_OPERANDS = {
+    b"BT": 0,
+    b"ET": 0,
+    b"Tm": 6,
+    b"cm": 6,
+    b"Tf": 2,
+    b"Td": 2,
+    b"TD": 2,
+    b"Tc": 1,
+    b"Tw": 1,
+    b"Tz": 1,
+    b"TL": 1,
+    b"Tr": 1,
+    b"Ts": 1,
+    b"T*": 0,
+    b"Tj": 1,
+    b"TJ": 1,
+    b"'": 1,
+    b'"': 3,
+    b"Do": 1,
+}
+
+
+class _ExtractionCheck(logging.Handler):
+    def __init__(self) -> None:
+        super().__init__(logging.WARNING)
+        self.thread_id = threading.get_ident()
+        self.failed = False
+
+    @override
+    def emit(self, record: logging.LogRecord) -> None:
+        # pypdf logs and suppresses exceptions inside Form XObjects, even in strict mode.
+        if record.thread == self.thread_id and record.getMessage().startswith("Impossible to decode XFormObject"):
+            self.failed = True
+
+    def visit(self, operator: bytes, operands: Sequence[object], *_: object) -> None:
+        expected = _TEXT_OPERANDS.get(operator)
+        if expected is not None and len(operands) != expected:
+            self.failed = True
+
+
+def _extract_page_text(page: PageObject, check: _ExtractionCheck) -> str:
+    contents = page.get("/Contents")
+    if contents is not None:
+        contents = contents.get_object()
+        streams = contents if isinstance(contents, ArrayObject) else (contents,)
+        for stream in streams:
+            _validate_content_stream(stream.get_object())
+    resources = [page.get("/Resources")]
+    visited = set()
+    while resources:
+        resource = resources.pop()
+        if resource is None:
+            continue
+        resource = resource.get_object()
+        if id(resource) in visited:
+            continue
+        visited.add(id(resource))
+        xobjects = resource.get("/XObject")
+        if xobjects is None:
+            continue
+        for reference in xobjects.get_object().values():
+            form = reference.get_object()
+            if form.get("/Subtype") == "/Form":
+                _validate_content_stream(form)
+                resources.append(form.get("/Resources"))
+    return page.extract_text(visitor_operand_before=check.visit) or ""
+
+
+def _validate_content_stream(stream: object) -> None:
+    if isinstance(stream, NullObject):
+        return
+    if not isinstance(stream, StreamObject):
+        raise TypeError("PDF page has an invalid content stream")  # noqa: TRY003
+    filters = stream.get("/Filter")
+    filters = list(filters) if isinstance(filters, ArrayObject) else [filters]
+    if filters in (["/FlateDecode"], ["/Fl"]):
+        # pypdf's tolerant Flate decoder can return empty bytes after a corrupt
+        # stream. Validate its checksum rather than silently calling the page blank.
+        zlib.decompress(stream._data)  # Encoded bytes have no public accessor.
+
+
+def _page_identity(page: PDFPageInput) -> str:
+    encoded = json.dumps(
+        [page.document_id, page.document_sha256, page.page_number], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")
+    return "pdf:" + hashlib.sha256(encoded).hexdigest()
+
+
+class PDFPageSource(Source):
+    """Captured page whose identity changes when any original PDF byte changes."""
+
+    model_config = ConfigDict(frozen=True)
+
+    # Pydantic's frozen model forbids writes to these narrowed fields at runtime.
+    definition_version: Literal["1"] = "1"  # ty: ignore[invalid-mutable-override]
+    materialization: Literal[SourceMaterialization.CAPTURED] = SourceMaterialization.CAPTURED  # ty: ignore[invalid-mutable-override]
+    page: PDFPageInput
+
+    @model_validator(mode="after")
+    def validate_identity(self) -> Self:
+        if self.name != _page_identity(self.page):
+            raise ValueError("PDF page Source name does not match its exact page identity")  # noqa: TRY003
+        return self
+
+
+class _PDFPageAdapter:
+    name = "pdf-page"
+    input_class: type[PDFPageInput] = PDFPageInput
+    source_class: type[PDFPageSource] = PDFPageSource
+
+    async def resolve(self, value: PDFPageInput, /) -> PDFPageSource:
+        return PDFPageSource(name=_page_identity(value), page=value)
+
+    async def read(self, source: PDFPageSource, /) -> PDFPageInput:
+        return source.page
 
 
 class _PDFPageTextProjection:
@@ -192,39 +229,40 @@ class _PDFPageTextProjection:
     output_class: type[BaseModel] = TextEvidence
 
     def project(self, source: PDFPageSource, /) -> TextEvidence:
+        page = source.page
         return TextEvidence(
             source_type="pdf-page",
             source_id=source.name,
-            content=f"{source.document_id}\n{source.text}",
+            content=f"{page.document_id}\n{page.text}",
             metadata={
-                "document_id": source.document_id,
-                "document_sha256": source.document_sha256,
-                "page_number": source.page_number,
+                "document_id": page.document_id,
+                "document_sha256": page.document_sha256,
+                "page_number": page.page_number,
             },
         )
 
 
-class _PDFPageDefinition:
-    name = "pdf-page"
-    version = "1"
-    input_class: type[PDFPageInput] = PDFPageInput
-    source_class: type[PDFPageSource] = PDFPageSource
-    projections: tuple[SourceProjection[PDFPageSource], ...] = (_PDFPageTextProjection(),)
-
-    async def resolve(self, value: PDFPageInput, /) -> PDFPageSource:
-        identity = _page_identity(value)
-        return PDFPageSource(name=identity, source_id=identity, definition_version=self.version, **value.model_dump())
-
-    async def read(self, source: PDFPageSource, /) -> PDFPageInput:
-        return PDFPageInput(
-            document_id=source.document_id,
-            document_sha256=source.document_sha256,
-            page_number=source.page_number,
-            text=source.text,
-        )
+PDF_PAGE_SOURCE_DEFINITION = cast(
+    SourceDefinition[PDFPageInput, PDFPageSource, PDFPageInput],
+    AdapterSourceDefinition(_PDFPageAdapter(), projections=(_PDFPageTextProjection(),)),
+)
 
 
-PDF_PAGE_SOURCE_DEFINITION: SourceDefinition[PDFPageInput, PDFPageSource, PDFPageInput] = _PDFPageDefinition()
+async def search_pdf_pages(
+    memory: ScopedMemoryApplication, question: str, limit: int = 10
+) -> tuple[MemoryCitation, ...]:
+    """Rank current, captured PDF pages from this Memory scope without model calls."""
+
+    from powercontext.sources.pdf_search import search_pages
+
+    if type(limit) is not int or limit < 0:
+        raise ValueError("PDF search limit must be a nonnegative integer")  # noqa: TRY003
+    if limit == 0:
+        return ()
+    if isinstance(question, str) and not question.strip():
+        return ()
+    return await search_pages(memory, question, limit)
+
 
 __all__ = [
     "PDF_PAGE_SOURCE_DEFINITION",
