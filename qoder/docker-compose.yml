@@ -1,0 +1,12 @@
+# 只启动 seekdb；应用与 PowerContext 按 README 在宿主机运行。
+# 用法：docker compose up -d seekdb
+services:
+  seekdb:
+    image: oceanbase/seekdb:latest
+    container_name: researchnest-seekdb
+    ports:
+      - "2881:2881"   # MySQL 协议
+      - "2886:2886"   # HTTP 服务
+    volumes:
+      - ./.data/seekdb:/var/lib/oceanbase
+    restart: unless-stopped

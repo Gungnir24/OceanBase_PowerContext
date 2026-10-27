@@ -1,0 +1,16 @@
+# 运行期状态与本地数据
+.state/
+.data/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# 编辑器
+.idea/
+.vscode/
+.DS_Store
