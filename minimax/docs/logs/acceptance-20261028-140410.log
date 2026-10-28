@@ -1,0 +1,74 @@
+# SDD 上下文模块验收日志 2026-10-28T14:04:28
+# 代码版本: 1334722
+# 结果: 17/17 通过
+
+
+=== 1. 环境检查 ===
+[PASS] 环境 · seekdb · 127.0.0.1:2881 / 5.7.25-OceanBase seekdb-v1.4.0.0
+[PASS] 环境 · PowerContext · http://127.0.0.1:8000 / scope=scp_1v16tw28vh35ygy2n5vdvf99ms
+
+=== 2. 数据初始化（seekdb 导入工程资料） ===
+[PASS] 初始化 · 导入 · documents=16 clauses=16 chunks=105 symbols=78
+
+=== 3. 修改前：目标测试失败、回归测试通过 ===
+[PASS] 修改前 · 目标测试 · exit=1 passed=3 failed=14（预期失败，已写入 PowerContext）
+       $ python -m sddctx verify --label baseline-target -- pytest workdir/tests/test_search_target.py -q (exit=1)
+[PASS] 修改前 · 回归测试 · exit=0
+       $ python -m sddctx verify --label baseline-regression -- pytest workdir/tests/test_search_regression.py -q (exit=0)
+
+=== 4. 修改后：重放 MiniMax 补丁并通过全部测试 ===
+      [1/5] 已回滚基线（11 个文件）
+      [2/5] 已写入 MiniMax 输出（3 个文件）
+      [3/5] diff 校验：通过 · 0001-price-and-stock-filter.patch 可干净应用到基线，且结果与 MiniMax 输出一致
+      [4/5] 摘要校验：通过
+      [5/5] pytest：exit=0 passed=31 failed=0
+[PASS] 修改后 · 重放与测试 · 31 个测试通过且文件摘要与记录一致
+       $ python scripts/replay_minimax.py --check (exit=0)
+[PASS] 修改后 · 验证结果入库 · exit=0 passed=31 failed=0（已写入 PowerContext）
+       $ python -m sddctx verify --label after-change -- pytest workdir/tests -q (exit=0)
+
+=== 5. 上下文输出核对 ===
+[PASS] 上下文 · 必要规格 · 15 条
+[PASS] 上下文 · 必要代码 · 18 处
+[PASS] 上下文 · 必要测试 · 2 个文件
+[PASS] 上下文 · 失效决策可见 · 已排除 ['ADR-0007']
+[PASS] 上下文 · 来源真实存在 · 8 个来源
+[PASS] 上下文 · 无悬空引用 · []
+[PASS] 上下文 · 任务状态 · done=5 todo=2 validations=8
+
+=== 6. 规格更新后重新导入 ===
+            [PASS] 更新后含 FILTER-005 
+            [PASS] 更新后契约版本为 2.4.0 {'data/specs_updated/API-catalog-v2.md': '2.4.0'}
+            [PASS] 条目数量增加 1 15 -> 16
+            [PASS] 恢复原规格后回到更新前结果 
+      [4/4] 日志 -> docs/logs/spec-update-20261028-140426.log
+      {"ok": true, "before": ["ADR-0011", "COMPAT-001", "COMPAT-002", "COMPAT-003", "COMPAT-004", "FILTER-001", "FILTER-002", "FILTER-003", "FILTER-004", "SRS-F-014", "SRS-F-015", "SRS-F-016", "TEST-001", "TEST-002", "TEST-003"], "after": ["ADR-0011", "COMPAT-001", "COMPAT-002", "COMPAT-003", "COMPAT-004", "FILTER-001", "FILTER-002", "FILTER-003", "FILTER-004", "FILTER-005", "SRS-F-014", "SRS-F-015", "SRS-F-016", "TEST-001", "TEST-002", "TEST-003"]}
+[PASS] 规格更新 · 输出随规格变化 · FILTER-005 出现在更新后的上下文，恢复后消失
+       $ python scripts/spec_update_demo.py (exit=0)
+
+=== 7. 状态复用（新进程读取 PowerContext） ===
+[PASS] 状态 · 新进程读取 · scope=scp_1v16tw28vh35ygy2n5vdvf99ms done=5 todo=2 validations=8
+       $ python -m sddctx state show --task-id T-2026-1028 --json (exit=0)
+
+=== 8. 最终回归 ===
+[PASS] 最终 · 全量测试 · exit=0 passed=31 failed=0
+       $ python -m pytest workdir/tests -q (exit=0)
+
+## 汇总
+- [PASS] 环境 · seekdb: 127.0.0.1:2881 / 5.7.25-OceanBase seekdb-v1.4.0.0
+- [PASS] 环境 · PowerContext: http://127.0.0.1:8000 / scope=scp_1v16tw28vh35ygy2n5vdvf99ms
+- [PASS] 初始化 · 导入: documents=16 clauses=16 chunks=105 symbols=78
+- [PASS] 修改前 · 目标测试: exit=1 passed=3 failed=14（预期失败，已写入 PowerContext）
+- [PASS] 修改前 · 回归测试: exit=0
+- [PASS] 修改后 · 重放与测试: 31 个测试通过且文件摘要与记录一致
+- [PASS] 修改后 · 验证结果入库: exit=0 passed=31 failed=0（已写入 PowerContext）
+- [PASS] 上下文 · 必要规格: 15 条
+- [PASS] 上下文 · 必要代码: 18 处
+- [PASS] 上下文 · 必要测试: 2 个文件
+- [PASS] 上下文 · 失效决策可见: 已排除 ['ADR-0007']
+- [PASS] 上下文 · 来源真实存在: 8 个来源
+- [PASS] 上下文 · 无悬空引用: []
+- [PASS] 上下文 · 任务状态: done=5 todo=2 validations=8
+- [PASS] 规格更新 · 输出随规格变化: FILTER-005 出现在更新后的上下文，恢复后消失
+- [PASS] 状态 · 新进程读取: scope=scp_1v16tw28vh35ygy2n5vdvf99ms done=5 todo=2 validations=8
+- [PASS] 最终 · 全量测试: exit=0 passed=31 failed=0

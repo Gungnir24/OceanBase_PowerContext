@@ -1,0 +1,19 @@
+# 规格更新演示 2026-10-28T14:04:19
+
+## 更新前（data/specs，版本 2.3.0）
+- 条目：ADR-0011, COMPAT-001, COMPAT-002, COMPAT-003, COMPAT-004, FILTER-001, FILTER-002, FILTER-003, FILTER-004, SRS-F-014, SRS-F-015, SRS-F-016, TEST-001, TEST-002, TEST-003
+- 契约版本：{'data/specs/API-catalog-v2.md': '2.3.0'}
+
+## 规格更新内容（data/specs_updated/API-catalog-v2.md）
+- version: 2.3.0 -> 2.4.0
+- 新增条目 FILTER-005 价格区间跨度上限
+
+## 更新后（data/specs_updated，版本 2.4.0）
+- 条目：ADR-0011, COMPAT-001, COMPAT-002, COMPAT-003, COMPAT-004, FILTER-001, FILTER-002, FILTER-003, FILTER-004, FILTER-005, SRS-F-014, SRS-F-015, SRS-F-016, TEST-001, TEST-002, TEST-003
+- 契约版本：{'data/specs_updated/API-catalog-v2.md': '2.4.0'}
+- [PASS] 更新前不含 FILTER-005 
+- [PASS] 更新后含 FILTER-005 
+- [PASS] 更新后契约版本为 2.4.0 {'data/specs_updated/API-catalog-v2.md': '2.4.0'}
+- [PASS] 条目数量增加 1 15 -> 16
+- [PASS] 恢复原规格后回到更新前结果 
+- 已清理 data/specs_updated（--keep 可保留）

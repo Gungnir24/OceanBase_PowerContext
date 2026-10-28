@@ -1,0 +1,26 @@
+{
+  "currency": "CNY",
+  "note": "商品目录种子数据；价格以元为字符串，加载时换算成分。顺序即默认相关度顺序。",
+  "products": [
+    {"id": "p-1001", "name": "静音机械键盘", "price": "299.00", "stock": 12, "category": "外设", "tags": ["键盘", "外设", "办公"]},
+    {"id": "p-1002", "name": "无线鼠标", "price": "89.90", "stock": 0, "category": "外设", "tags": ["鼠标", "外设"]},
+    {"id": "p-1003", "name": "4K 显示器", "price": "1599.00", "stock": 5, "category": "外设", "tags": ["显示器", "外设", "影音"]},
+    {"id": "p-1004", "name": "USB-C 扩展坞", "price": "249.50", "stock": 30, "category": "外设", "tags": ["扩展坞", "外设", "USB-C"]},
+    {"id": "p-1005", "name": "桌面收纳架", "price": "59.00", "stock": 0, "category": "居家", "tags": ["收纳", "居家"]},
+    {"id": "p-1006", "name": "护眼台灯", "price": "129.00", "stock": 8, "category": "居家", "tags": ["台灯", "居家", "灯"]},
+    {"id": "p-1007", "name": "人体工学椅", "price": "1899.00", "stock": 2, "category": "办公", "tags": ["椅子", "办公"]},
+    {"id": "p-1008", "name": "便携咖啡杯", "price": "39.90", "stock": 100, "category": "居家", "tags": ["杯子", "居家"]},
+    {"id": "p-1009", "name": "降噪耳机", "price": "899.00", "stock": 4, "category": "音频", "tags": ["耳机", "音频"]},
+    {"id": "p-1010", "name": "机械键盘腕托", "price": "45.00", "stock": 0, "category": "配件", "tags": ["键盘", "配件"]},
+    {"id": "p-1011", "name": "蓝牙音箱", "price": "199.00", "stock": 15, "category": "音频", "tags": ["音箱", "音频"]},
+    {"id": "p-1012", "name": "笔记本支架", "price": "79.90", "stock": 22, "category": "办公", "tags": ["支架", "办公"]},
+    {"id": "p-1013", "name": "桌面麦克风", "price": "349.00", "stock": 3, "category": "音频", "tags": ["麦克风", "音频"]},
+    {"id": "p-1014", "name": "无线充电板", "price": "69.00", "stock": 40, "category": "配件", "tags": ["充电", "配件"]},
+    {"id": "p-1015", "name": "智能插座", "price": "49.00", "stock": 0, "category": "居家", "tags": ["插座", "居家"]},
+    {"id": "p-1016", "name": "便携投影仪", "price": "2299.00", "stock": 1, "category": "影音", "tags": ["投影", "影音"]},
+    {"id": "p-1017", "name": "硬盘盒", "price": "119.00", "stock": 9, "category": "配件", "tags": ["存储", "配件"]},
+    {"id": "p-1018", "name": "屏幕挂灯", "price": "169.00", "stock": 6, "category": "办公", "tags": ["灯", "办公"]},
+    {"id": "p-1019", "name": "游戏手柄", "price": "259.00", "stock": 0, "category": "游戏", "tags": ["手柄", "游戏"]},
+    {"id": "p-1020", "name": "桌面绿植", "price": "29.90", "stock": 60, "category": "居家", "tags": ["绿植", "居家"]}
+  ]
+}

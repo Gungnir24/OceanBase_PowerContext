@@ -1,0 +1,18 @@
+{
+  "recorded_at": "2026-10-28T14:05:13",
+  "source": "final-patch-response.json",
+  "files": {
+    "workdir/biz/catalog/service.py": {
+      "sha256": "4a473b4b486cb92e7284c536261b7289173ce4e18bc2f78d2026ac716b02b9e2",
+      "bytes": 6753
+    },
+    "workdir/biz/catalog/api.py": {
+      "sha256": "ada86f4034b14c70d369900474e6d67f15448006221e8b0441bab3b796bb86be",
+      "bytes": 1901
+    },
+    "workdir/biz/catalog/filters.py": {
+      "sha256": "3657b166e68012c85d2b1806adc78a519bb0172e7d34b06ffde0afd39ab2d3b9",
+      "bytes": 3167
+    }
+  }
+}

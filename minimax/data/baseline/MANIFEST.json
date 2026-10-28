@@ -1,0 +1,17 @@
+{
+  "created_at": "2026-10-28T13:48:08",
+  "note": "修改前基线快照：只包含业务代码与测试，用于复现「修改前目标测试失败」",
+  "files": [
+    "biz/catalog/__init__.py",
+    "biz/catalog/api.py",
+    "biz/catalog/errors.py",
+    "biz/catalog/filters.py",
+    "biz/catalog/models.py",
+    "biz/catalog/server.py",
+    "biz/catalog/service.py",
+    "biz/catalog/store.py",
+    "tests/conftest.py",
+    "tests/test_search_regression.py",
+    "tests/test_search_target.py"
+  ]
+}

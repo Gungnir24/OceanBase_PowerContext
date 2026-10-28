@@ -1,0 +1,226 @@
+--- a/workdir/biz/catalog/api.py
++++ b/workdir/biz/catalog/api.py
+@@ -27,16 +27,30 @@
+     """处理 ``GET /api/products``。
+ 
+     ``query`` 是已经解码的 query string（多值取第一个）。
++
++    新增筛选参数（FILTER-001, FILTER-002）：
++    * price_min / price_max：价格区间（单位元，闭区间）。
++    * in_stock_only：仅返回有货商品（true/1/yes 为真，false/0/no 为假，其余非法）。
++    * 旧参数 min_price / max_price 按 ADR-0011 必须忽略。
+     """
+     try:
+         page = parse_page(query.get("page", DEFAULT_PAGE))
+         page_size = parse_page_size(query.get("page_size", DEFAULT_PAGE_SIZE))
++
++        # ADR-0011：忽略旧参数名 min_price / max_price
++        price_min = query.get("price_min")
++        price_max = query.get("price_max")
++        in_stock_only = query.get("in_stock_only")
++
+         payload = search_products(
+             repo,
+             keyword=query.get("keyword", ""),
+             sort=query.get("sort", "relevance"),
+             page=page,
+             page_size=page_size,
++            price_min=price_min,
++            price_max=price_max,
++            in_stock_only=in_stock_only,
+         )
+         return 200, payload
+     except ApiError as exc:
+--- a/workdir/biz/catalog/filters.py
++++ b/workdir/biz/catalog/filters.py
+@@ -4,6 +4,8 @@
+ * ``data/specs/API-catalog-v2.md``  §COMPAT-001（关键字匹配）
+ * ``data/specs/API-catalog-v2.md``  §COMPAT-002（排序）
+ * ``data/specs/API-catalog-v2.md``  §COMPAT-004（分页默认值）
++* ``data/specs/API-catalog-v2.md``  §FILTER-001（价格区间筛选）
++* ``data/specs/API-catalog-v2.md``  §FILTER-002（仅看有货）
+ 
+ 本模块只做「纯函数式」的过滤/排序，不感知 HTTP。新增过滤条件应加在这里，
+ 再由 ``service.search_products`` 组合，避免把参数解析散落到接口层。
+@@ -38,6 +40,34 @@
+     return [product for product in products if matches_keyword(product, keyword)]
+ 
+ 
++def apply_price_range(
++    products: Iterable[Product], min_cents: int | None, max_cents: int | None
++) -> list[Product]:
++    """按价格区间过滤（闭区间）。
++
++    min_cents 为 None 表示无下界；max_cents 为 None 表示无上界。
++    """
++    result = []
++    for product in products:
++        if min_cents is not None and product.price_cents < min_cents:
++            continue
++        if max_cents is not None and product.price_cents > max_cents:
++            continue
++        result.append(product)
++    return result
++
++
++def apply_in_stock(products: Iterable[Product], in_stock_only: bool | None) -> list[Product]:
++    """按库存状态过滤。
++
++    in_stock_only 为 True 时只保留 stock > 0 的商品；
++    为 False 或 None 时不过滤。
++    """
++    if in_stock_only is not True:
++        return list(products)
++    return [product for product in products if product.stock > 0]
++
++
+ def sort_products(products: list[Product], sort: str | None) -> list[Product]:
+     """按 ``sort`` 排序；未知取值属于非法请求。"""
+     key = (sort or DEFAULT_SORT).strip().lower()
+--- a/workdir/biz/catalog/service.py
++++ b/workdir/biz/catalog/service.py
+@@ -12,14 +12,20 @@
+ 
+ from __future__ import annotations
+ 
++from decimal import Decimal, InvalidOperation
++
+ from .errors import ApiError
+-from .filters import apply_keyword, sort_products
++from .filters import apply_keyword, apply_in_stock, apply_price_range, sort_products
+ from .models import Product
+ from .store import ProductRepository
+ 
+ DEFAULT_PAGE = 1
+ DEFAULT_PAGE_SIZE = 20
+ MAX_PAGE_SIZE = 100
++
++# in_stock_only 真值集合（大小写不敏感）
++_IN_STOCK_TRUE: frozenset[str] = frozenset({"true", "1", "yes"})
++_IN_STOCK_FALSE: frozenset[str] = frozenset({"false", "0", "no"})
+ 
+ 
+ def parse_page(raw: str | int | None) -> int:
+@@ -48,6 +54,89 @@
+     return value
+ 
+ 
++def parse_price(raw: str | None) -> int | None:
++    """把「元」字符串解析成「分」的整数。
++
++    最多两位小数；负数、非数字、或超过两位小数视为非法，返回 None（由调用方抛出 ApiError）。
++    """
++    if raw is None or raw.strip() == "":
++        return None
++    s = raw.strip()
++    try:
++        # Decimal 会把逗号当千位分隔符（如 '1,299' -> 1299），按规格这应该被拒绝。
++        # 先用字符串检查：只允许数字、单个可选小数点、前面可选负号。
++        if "." in s:
++            integer_part, fractional_part = s.split(".", 1)
++            # 整数部分只允许数字，可选前缀负号
++            if integer_part.startswith("-"):
++                integer_digits = integer_part[1:]
++            else:
++                integer_digits = integer_part
++            if not integer_digits.isdigit() or len(fractional_part) > 2:
++                return None
++        else:
++            # 无小数点：必须是纯数字（可选负号）
++            if s.startswith("-"):
++                digits = s[1:]
++            else:
++                digits = s
++            if not digits.isdigit():
++                return None
++
++        value = Decimal(s)
++        if value < 0:
++            return None
++        # 量化到两位小数，四舍五入
++        quantized = value.quantize(Decimal("0.01"))
++        return int(quantized * 100)
++    except (InvalidOperation, ValueError):
++        return None
++
++
++def parse_price_range(
++    price_min: str | None, price_max: str | None
++) -> tuple[int | None, int | None]:
++    """解析价格区间参数。
++
++    返回 (min_cents, max_cents)；任一参数非法则抛出 ApiError(INVALID_FILTER)。
++    """
++    min_cents = parse_price(price_min)
++    max_cents = parse_price(price_max)
++
++    # 检查非数字/负数/超过两位小数的情况
++    if price_min is not None and price_min.strip() != "" and min_cents is None:
++        raise ApiError("INVALID_FILTER", f"price_min 必须是有效金额，收到 {price_min!r}")
++    if price_max is not None and price_max.strip() != "" and max_cents is None:
++        raise ApiError("INVALID_FILTER", f"price_max 必须是有效金额，收到 {price_max!r}")
++
++    # 检查区间有效性
++    if min_cents is not None and max_cents is not None and min_cents > max_cents:
++        raise ApiError(
++            "INVALID_FILTER",
++            f"price_min({price_min}) 不能大于 price_max({price_max})",
++        )
++
++    return min_cents, max_cents
++
++
++def parse_in_stock_only(raw: str | None) -> bool | None:
++    """解析 in_stock_only 参数。
++
++    真值集合：true / 1 / yes（大小写不敏感）
++    假值集合：false / 0 / no
++    省略或为空：None（不过滤）
++    其他值：抛出 ApiError(INVALID_FILTER)
++    """
++    if raw is None or raw.strip() == "":
++        return None
++    normalized = raw.strip().lower()
++    if normalized in _IN_STOCK_TRUE:
++        return True
++    if normalized in _IN_STOCK_FALSE:
++        return False
++    raise ApiError("INVALID_FILTER", f"in_stock_only 取值非法，收到 {raw!r}")
++
++
+ def paginate(products: list[Product], page: int, page_size: int) -> list[Product]:
+     start = (page - 1) * page_size
+     if start >= len(products):
+@@ -62,12 +151,31 @@
+     sort: str | None = "relevance",
+     page: int = DEFAULT_PAGE,
+     page_size: int = DEFAULT_PAGE_SIZE,
++    price_min: str | None = None,
++    price_max: str | None = None,
++    in_stock_only: str | None = None,
+ ) -> dict:
+-    """返回 ``{"items": [...], "total": int, "page": int, "page_size": int}``。"""
++    """返回 ``{"items": [...], "total": int, "page": int, "page_size": int}``。
++
++    过滤顺序（FILTER-004）：keyword -> 价格区间 -> 库存 -> 排序 -> 分页。
++    """
++    # 解析并验证价格区间参数
++    min_cents, max_cents = parse_price_range(price_min, price_max)
++
++    # 解析库存状态参数
++    stock_filter = parse_in_stock_only(in_stock_only)
++
+     products = repo.all()
++    # 1) keyword 过滤（COMPAT-001）
+     products = apply_keyword(products, keyword)
++    # 2) 价格区间过滤（FILTER-001）
++    products = apply_price_range(products, min_cents, max_cents)
++    # 3) 库存状态过滤（FILTER-002）
++    products = apply_in_stock(products, stock_filter)
++    # 4) 排序（COMPAT-002）
+     products = sort_products(products, sort)
+ 
++    # total 是全部过滤完成后的总数，与分页无关（FILTER-004）
+     total = len(products)
+     page_items = paginate(products, page, page_size)
+     return {

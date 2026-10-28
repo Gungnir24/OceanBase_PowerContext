@@ -1,0 +1,10 @@
+command: python -m pytest tests -q
+cwd: D:\OceanBase\OceanBase_PowerContext\minimax
+started: 2026-10-28T14:04:01
+exit_code: 0
+code_version: 1334722
+python: 3.14.6
+label: module-tests
+------------------------------------------------------------------------
+............                                                             [100%]
+12 passed in 7.74s

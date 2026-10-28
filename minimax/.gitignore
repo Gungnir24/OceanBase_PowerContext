@@ -1,0 +1,10 @@
+# 本地凭据与运行产物，一律不入库（docs/logs 下的验收日志是交付证据，正常入库）
+.env
+.state/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/specs_updated/
+.data/

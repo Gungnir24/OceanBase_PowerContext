@@ -1,0 +1,20 @@
+# 单机 seekdb：仅用于本作品演示，端口与 README 一致
+services:
+  seekdb:
+    image: oceanbase/seekdb:latest
+    container_name: sddctx-seekdb
+    ports:
+      - "2881:2881"
+    environment:
+      - MODE=MINIMAL
+      - OB_TENANT_PASSWORD=
+    volumes:
+      - seekdb-data:/var/lib/oceanbase/store
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc 'echo > /dev/tcp/127.0.0.1/2881' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+volumes:
+  seekdb-data:

@@ -1,0 +1,5 @@
+# 统一用 LF 入库与检出，避免不同平台行尾差异影响 diff / 摘要校验
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.whl binary

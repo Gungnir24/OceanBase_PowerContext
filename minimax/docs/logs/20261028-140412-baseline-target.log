@@ -1,0 +1,202 @@
+command: D:\Anaconda3\python.exe -m pytest workdir/tests/test_search_target.py -q
+cwd: D:\OceanBase\OceanBase_PowerContext\minimax
+started: 2026-10-28T14:04:12
+exit_code: 1
+code_version: 1334722
+python: 3.14.6
+label: baseline-target
+------------------------------------------------------------------------
+FFFF.FF.FFFFFFFF.                                                        [100%]
+================================== FAILURES ===================================
+________________ test_price_range_is_inclusive_on_both_bounds _________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_price_range_is_inclusive_on_both_bounds(repo):
+        status, payload = search(repo, price_min="59", price_max="129", page_size=100)
+        assert status == 200
+>       assert payload["total"] == 6
+E       assert 20 == 6
+
+workdir\tests\test_search_target.py:38: AssertionError
+_____________________________ test_price_min_only _____________________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_price_min_only(repo):
+        status, payload = search(repo, price_min="899", page_size=100)
+        assert status == 200
+>       assert ids(payload) == ["p-1003", "p-1007", "p-1009", "p-1016"]
+E       AssertionError: assert ['p-1001', 'p...'p-1006', ...] == ['p-1003', 'p...09', 'p-1016']
+E         
+E         At index 0 diff: 'p-1001' != 'p-1003'
+E         Left contains 16 more items, first extra item: 'p-1005'
+E         Use -v to get more diff
+
+workdir\tests\test_search_target.py:48: AssertionError
+_____________________________ test_price_max_only _____________________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_price_max_only(repo):
+        status, payload = search(repo, price_max="45", page_size=100)
+        assert status == 200
+>       assert ids(payload) == ["p-1008", "p-1010", "p-1020"]
+E       AssertionError: assert ['p-1001', 'p...'p-1006', ...] == ['p-1008', 'p-1010', 'p-1020']
+E         
+E         At index 0 diff: 'p-1001' != 'p-1008'
+E         Left contains 17 more items, first extra item: 'p-1004'
+E         Use -v to get more diff
+
+workdir\tests\test_search_target.py:54: AssertionError
+________________ test_decimal_bounds_keep_two_digit_precision _________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_decimal_bounds_keep_two_digit_precision(repo):
+        status, payload = search(repo, price_min="39.9", price_max="39.90", page_size=100)
+        assert status == 200
+>       assert ids(payload) == ["p-1008"]
+E       AssertionError: assert ['p-1001', 'p...'p-1006', ...] == ['p-1008']
+E         
+E         At index 0 diff: 'p-1001' != 'p-1008'
+E         Left contains 19 more items, first extra item: 'p-1002'
+E         Use -v to get more diff
+
+workdir\tests\test_search_target.py:60: AssertionError
+________________ test_in_stock_only_true_filters_out_sold_out _________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_in_stock_only_true_filters_out_sold_out(repo):
+        status, payload = search(repo, in_stock_only="true", page_size=100)
+        assert status == 200
+>       assert payload["total"] == 15
+E       assert 20 == 15
+
+workdir\tests\test_search_target.py:72: AssertionError
+___________________ test_in_stock_only_accepts_yes_and_one ____________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_in_stock_only_accepts_yes_and_one(repo):
+        _, from_yes = search(repo, in_stock_only="yes", page_size=100)
+        _, from_one = search(repo, in_stock_only="1", page_size=100)
+>       assert from_yes["total"] == 15
+E       assert 20 == 15
+
+workdir\tests\test_search_target.py:80: AssertionError
+_______________ test_invalid_price_range_returns_invalid_filter _______________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_invalid_price_range_returns_invalid_filter(repo):
+        status, payload = search(repo, price_min="200", price_max="100")
+>       assert status == 400
+E       assert 200 == 400
+
+workdir\tests\test_search_target.py:93: AssertionError
+_________________ test_negative_price_returns_invalid_filter __________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_negative_price_returns_invalid_filter(repo):
+        status, payload = search(repo, price_min="-1")
+>       assert status == 400
+E       assert 200 == 400
+
+workdir\tests\test_search_target.py:99: AssertionError
+________________ test_non_numeric_price_returns_invalid_filter ________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_non_numeric_price_returns_invalid_filter(repo):
+        for value in ("abc", "12x", "1,299"):
+            status, payload = search(repo, price_max=value)
+>           assert status == 400, value
+E           AssertionError: abc
+E           assert 200 == 400
+
+workdir\tests\test_search_target.py:106: AssertionError
+________________ test_more_than_two_decimal_places_is_rejected ________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_more_than_two_decimal_places_is_rejected(repo):
+        status, payload = search(repo, price_min="1.999")
+>       assert status == 400
+E       assert 200 == 400
+
+workdir\tests\test_search_target.py:112: AssertionError
+_____________ test_invalid_in_stock_value_returns_invalid_filter ______________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_invalid_in_stock_value_returns_invalid_filter(repo):
+        status, payload = search(repo, in_stock_only="maybe")
+>       assert status == 400
+E       assert 200 == 400
+
+workdir\tests\test_search_target.py:118: AssertionError
+__________ test_total_is_counted_after_filter_and_page_can_overflow ___________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+seed_payload = {'currency': 'CNY', 'note': '商品目录种子数据；价格以元为字符串，加载时换算成分。顺序即默认相关度顺序。', 'products': [{'category': '外设', 'id': 'p-1001', '...me': '桌面收纳架', 'price': '59.00', ...}, {'category': '居家', 'id': 'p-1006', 'name': '护眼台灯', 'price': '129.00', ...}, ...]}
+
+    def test_total_is_counted_after_filter_and_page_can_overflow(repo, seed_payload):
+        expected = _expected_ids(seed_payload, max_yuan=Decimal("100"), in_stock_only=True)
+        status, payload = search(repo, price_max="100", in_stock_only="true", page=99, page_size=2)
+        assert status == 200
+>       assert payload["total"] == len(expected)
+E       AssertionError: assert 20 == 4
+E        +  where 4 = len(['p-1008', 'p-1012', 'p-1014', 'p-1020'])
+
+workdir\tests\test_search_target.py:126: AssertionError
+________________ test_filter_combines_with_sort_and_pagination ________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+seed_payload = {'currency': 'CNY', 'note': '商品目录种子数据；价格以元为字符串，加载时换算成分。顺序即默认相关度顺序。', 'products': [{'category': '外设', 'id': 'p-1001', '...me': '桌面收纳架', 'price': '59.00', ...}, {'category': '居家', 'id': 'p-1006', 'name': '护眼台灯', 'price': '129.00', ...}, ...]}
+
+    def test_filter_combines_with_sort_and_pagination(repo, seed_payload):
+        expected = _expected_ids(seed_payload, max_yuan=Decimal("100"), in_stock_only=True)
+        prices = {
+            item["id"]: Decimal(item["price"])
+            for item in seed_payload["products"]
+        }
+        expected.sort(key=lambda product_id: (prices[product_id], product_id))
+        status, payload = search(
+            repo, price_max="100", in_stock_only="true", sort="price_asc", page=2, page_size=2
+        )
+        assert status == 200
+>       assert payload["total"] == len(expected)
+E       AssertionError: assert 20 == 4
+E        +  where 4 = len(['p-1020', 'p-1008', 'p-1014', 'p-1012'])
+
+workdir\tests\test_search_target.py:141: AssertionError
+______________________ test_filter_combines_with_keyword ______________________
+
+repo = <catalog.store.ProductRepository object at 0x0000029177D02F90>
+
+    def test_filter_combines_with_keyword(repo):
+        status, payload = search(repo, keyword="键盘", in_stock_only="true", page_size=100)
+        assert status == 200
+>       assert payload["total"] == 1
+E       assert 2 == 1
+
+workdir\tests\test_search_target.py:148: AssertionError
+=========================== short test summary info ===========================
+FAILED workdir/tests/test_search_target.py::test_price_range_is_inclusive_on_both_bounds
+FAILED workdir/tests/test_search_target.py::test_price_min_only - AssertionEr...
+FAILED workdir/tests/test_search_target.py::test_price_max_only - AssertionEr...
+FAILED workdir/tests/test_search_target.py::test_decimal_bounds_keep_two_digit_precision
+FAILED workdir/tests/test_search_target.py::test_in_stock_only_true_filters_out_sold_out
+FAILED workdir/tests/test_search_target.py::test_in_stock_only_accepts_yes_and_one
+FAILED workdir/tests/test_search_target.py::test_invalid_price_range_returns_invalid_filter
+FAILED workdir/tests/test_search_target.py::test_negative_price_returns_invalid_filter
+FAILED workdir/tests/test_search_target.py::test_non_numeric_price_returns_invalid_filter
+FAILED workdir/tests/test_search_target.py::test_more_than_two_decimal_places_is_rejected
+FAILED workdir/tests/test_search_target.py::test_invalid_in_stock_value_returns_invalid_filter
+FAILED workdir/tests/test_search_target.py::test_total_is_counted_after_filter_and_page_can_overflow
+FAILED workdir/tests/test_search_target.py::test_filter_combines_with_sort_and_pagination
+FAILED workdir/tests/test_search_target.py::test_filter_combines_with_keyword
+14 failed, 3 passed in 0.13s

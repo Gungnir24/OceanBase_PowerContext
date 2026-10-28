@@ -1,0 +1,11 @@
+command: python scripts/replay_minimax.py --round 1
+cwd: D:\OceanBase\OceanBase_PowerContext\minimax
+started: 2026-10-28T14:04:40
+exit_code: 0
+code_version: 1334722
+python: 3.14.6
+label: round1-repro
+------------------------------------------------------------------------
+来源：docs/minimax/20261028-135014-round1-response.json（3 个文件）
+1 failed, 30 passed in 0.65s
+复现成功：第 1 轮（预期失败，实际 exit=1 passed=30 failed=1）
