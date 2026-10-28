@@ -206,6 +206,12 @@ class PowerContextClient:
         )
         return list(result.get("entries") or [])
 
+    def retire_entry(self, citation: dict, reason: str = "") -> dict:
+        payload: dict = {"scope_id": self.scope_id(), "citation": citation}
+        if reason:
+            payload["reason"] = reason[:512]
+        return self._request("POST", "/v1/memory/entries/retire", payload)
+
     def prepare(self, query: str, max_bytes: int = 4000) -> dict:
         return self._request(
             "POST",

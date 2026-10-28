@@ -1,5 +1,5 @@
-# SDD 上下文模块验收日志 2026-10-28T14:04:28
-# 代码版本: 1334722
+# SDD 上下文模块验收日志 2026-10-28T14:13:49
+# 代码版本: 263ba00
 # 结果: 17/17 通过
 
 
@@ -34,20 +34,20 @@
 [PASS] 上下文 · 失效决策可见 · 已排除 ['ADR-0007']
 [PASS] 上下文 · 来源真实存在 · 8 个来源
 [PASS] 上下文 · 无悬空引用 · []
-[PASS] 上下文 · 任务状态 · done=5 todo=2 validations=8
+[PASS] 上下文 · 任务状态 · done=5 todo=2 validations=3
 
 === 6. 规格更新后重新导入 ===
             [PASS] 更新后含 FILTER-005 
             [PASS] 更新后契约版本为 2.4.0 {'data/specs_updated/API-catalog-v2.md': '2.4.0'}
             [PASS] 条目数量增加 1 15 -> 16
             [PASS] 恢复原规格后回到更新前结果 
-      [4/4] 日志 -> docs/logs/spec-update-20261028-140426.log
+      [4/4] 日志 -> docs/logs/spec-update-20261028-141347.log
       {"ok": true, "before": ["ADR-0011", "COMPAT-001", "COMPAT-002", "COMPAT-003", "COMPAT-004", "FILTER-001", "FILTER-002", "FILTER-003", "FILTER-004", "SRS-F-014", "SRS-F-015", "SRS-F-016", "TEST-001", "TEST-002", "TEST-003"], "after": ["ADR-0011", "COMPAT-001", "COMPAT-002", "COMPAT-003", "COMPAT-004", "FILTER-001", "FILTER-002", "FILTER-003", "FILTER-004", "FILTER-005", "SRS-F-014", "SRS-F-015", "SRS-F-016", "TEST-001", "TEST-002", "TEST-003"]}
 [PASS] 规格更新 · 输出随规格变化 · FILTER-005 出现在更新后的上下文，恢复后消失
        $ python scripts/spec_update_demo.py (exit=0)
 
 === 7. 状态复用（新进程读取 PowerContext） ===
-[PASS] 状态 · 新进程读取 · scope=scp_1v16tw28vh35ygy2n5vdvf99ms done=5 todo=2 validations=8
+[PASS] 状态 · 新进程读取 · scope=scp_1v16tw28vh35ygy2n5vdvf99ms done=5 todo=2 validations=3
        $ python -m sddctx state show --task-id T-2026-1028 --json (exit=0)
 
 === 8. 最终回归 ===
@@ -68,7 +68,7 @@
 - [PASS] 上下文 · 失效决策可见: 已排除 ['ADR-0007']
 - [PASS] 上下文 · 来源真实存在: 8 个来源
 - [PASS] 上下文 · 无悬空引用: []
-- [PASS] 上下文 · 任务状态: done=5 todo=2 validations=8
+- [PASS] 上下文 · 任务状态: done=5 todo=2 validations=3
 - [PASS] 规格更新 · 输出随规格变化: FILTER-005 出现在更新后的上下文，恢复后消失
-- [PASS] 状态 · 新进程读取: scope=scp_1v16tw28vh35ygy2n5vdvf99ms done=5 todo=2 validations=8
+- [PASS] 状态 · 新进程读取: scope=scp_1v16tw28vh35ygy2n5vdvf99ms done=5 todo=2 validations=3
 - [PASS] 最终 · 全量测试: exit=0 passed=31 failed=0

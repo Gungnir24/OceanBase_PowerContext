@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from sddctx.assemble import build_context  # noqa: E402
+from sddctx.assemble import DEFAULT_MAX_BYTES, build_context  # noqa: E402
 from sddctx.config import load_config  # noqa: E402
 from sddctx.db import open_db  # noqa: E402
 from sddctx.powercontext import PowerContextClient  # noqa: E402
@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--task", default=TASK)
     parser.add_argument("--task-id", default="T-2026-1028")
     parser.add_argument("--endpoint", default="")
-    parser.add_argument("--max-bytes", type=int, default=20000)
+    parser.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES)
     parser.add_argument("--json", default="", help="把完整 JSON 写到这个路径")
     parser.add_argument("--markdown-out", default="", help="把 Markdown 上下文写到这个路径")
     parser.add_argument("--summary", action="store_true", help="只打印摘要")

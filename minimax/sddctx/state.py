@@ -97,6 +97,31 @@ class TaskStateStore:
     def add_validation(self, task_id: str, text: str, meta: dict | None = None) -> dict:
         return self._append(task_id, "validation", text, meta or {})
 
+    def prune(self, task_id: str, reason: str = "") -> int:
+        """撤回该任务的全部状态条目（PowerContext retire + 本地镜像清理）。
+
+        用于纠正写错的记录（例如统计口径改过之后重新登记），retire 后条目在服务端
+        变为 inactive，仍然保留审计痕迹，但不再参与上下文装配。
+        """
+        removed = 0
+        for _ in range(500):
+            target = None
+            for entry in self.client.list_entries():
+                if f"[task={task_id}]" not in str(entry.get("text", "")):
+                    continue
+                if entry.get("citation"):
+                    target = entry
+                    break
+            if target is None:
+                break
+            # 每撤回一条，scope 的 Memory Revision 都会递增，所以必须重新拉一次
+            self.client.retire_entry(
+                target["citation"], reason or f"清理 {task_id} 的历史状态"
+            )
+            removed += 1
+        self.db.execute("DELETE FROM task_states WHERE task_id=%s", (task_id,))
+        return removed
+
     def _append(self, task_id: str, kind: str, text: str, meta: dict) -> dict:
         line = f"[SDD][task={task_id}][{kind}] {text}"
         if meta:

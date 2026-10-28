@@ -2,7 +2,7 @@
 
 - 任务：为 GET /api/products 增加按价格区间（price_min / price_max，单位元、闭区间、最多两位小数）与库存状态（in_stock_only）的筛选条件；非法过滤参数返回 400 且错误码为 INVALID_FILTER；过滤需与 keyword / sort / page / page_size 组合，total 为过滤后总数；同时保持既有响应结构、排序语义与分页行为不变。
 - 接口：/api/products
-- 生成时间：2026-10-28T14:03:56
+- 生成时间：2026-10-28T14:14:03
 
 ## 1. 适用规格（15 条）
 
@@ -166,7 +166,7 @@
   - 冒烟测试失败时，不允许把「缺依赖 / 起不来」解释成「功能未实现」。
 - 声明关联测试：workdir/tests/test_search_regression.py#test_http_server_serves_health_and_products
 
-## 2. 需要修改的代码（14 处）
+## 2. 需要修改的代码（18 处）
 
 ### workdir/biz/catalog/service.py#search_products
 - 行号：L147-L186
@@ -190,7 +190,30 @@ def search_products(
     过滤顺序（FILTER-004）：keyword -> 价格区间 -> 库存 -> 排序 -> 分页。
     """
     # 解析并验证价格区间参数
-    min_cents, max_cents = par
+    min_cents, max_cents = parse_price_range(price_min, price_max)
+
+    # 解析库存状态参数
+    stock_filter = parse_in_stock_only(in_stock_only)
+
+    products = repo.all()
+    # 1) keyword 过滤（COMPAT-001）
+    products = apply_keyword(products, keyword)
+    # 2) 价格区间过滤（FILTER-001）
+    products = apply_price_range(products, min_cents, max_cents)
+    # 3) 库存状态过滤（FILTER-002）
+    products = apply_in_stock(products, stock_filter)
+    # 4) 排序（COMPAT-002）
+    products = sort_products(products, sort)
+
+    # total 是全部过滤完成后的总数，与分页无关（FILTER-004）
+    total = len(products)
+    page_items = paginate(products, page, page_size)
+    return {
+        "items": [product.to_public_dict() for product in page_items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 ```
 
 ### workdir/biz/catalog/api.py#handle_products_query
@@ -211,7 +234,26 @@ def handle_products_query(repo: ProductRepository, query: Mapping[str, str]) -> 
     """
     try:
         page = parse_page(query.get("page", DEFAULT_PAGE))
-        page_size = parse_page_size(query.get("page_size"
+        page_size = parse_page_size(query.get("page_size", DEFAULT_PAGE_SIZE))
+
+        # ADR-0011：忽略旧参数名 min_price / max_price
+        price_min = query.get("price_min")
+        price_max = query.get("price_max")
+        in_stock_only = query.get("in_stock_only")
+
+        payload = search_products(
+            repo,
+            keyword=query.get("keyword", ""),
+            sort=query.get("sort", "relevance"),
+            page=page,
+            page_size=page_size,
+            price_min=price_min,
+            price_max=price_max,
+            in_stock_only=in_stock_only,
+        )
+        return 200, payload
+    except ApiError as exc:
+        return exc.status, exc.to_payload()
 ```
 
 ### workdir/biz/catalog/filters.py#matches_keyword
@@ -258,7 +300,10 @@ def sort_products(products: list[Product], sort: str | None) -> list[Product]:
         # 默认顺序即种子顺序，保持稳定，不能因为过滤而被打乱。
         return list(products)
     if key == "price_asc":
-        return sorted(products, key=lambda product: (produ
+        return sorted(products, key=lambda product: (product.price_cents, product.id))
+    if key == "price_desc":
+        return sorted(products, key=lambda product: (-product.price_cents, product.id))
+    return sorted(products, key=lambda product: (product.name, product.id))
 ```
 
 ### workdir/biz/catalog/filters.py#SORT_OPTIONS
@@ -322,7 +367,8 @@ def parse_page_size(raw: str | int | None) -> int:
     if value < 1:
         raise ApiError("INVALID_PAGINATION", f"page_size 必须 >= 1，收到 {value}")
     if value > MAX_PAGE_SIZE:
-        raise ApiError("INVALID_PAGINATION", f"page_size 最大 {MAX_PAGE_SIZE}，收到 {value}"
+        raise ApiError("INVALID_PAGINATION", f"page_size 最大 {MAX_PAGE_SIZE}，收到 {value}")
+    return value
 ```
 
 ### workdir/biz/catalog/service.py#paginate
@@ -408,6 +454,96 @@ class ApiError(Exception):
         self.status = status
 ```
 
+### workdir/biz/catalog/service.py#parse_price_range
+- 入选原因：全文/向量相似（未经规格声明，供参考）
+
+```python
+def parse_price_range(
+    price_min: str | None, price_max: str | None
+) -> tuple[int | None, int | None]:
+    """解析价格区间参数。
+
+    返回 (min_cents, max_cents)；任一参数非法则抛出 ApiError(INVALID_FILTER)。
+    """
+    min_cents = parse_price(price_min)
+    max_cents = parse_price(price_max)
+
+    # 检查非数字/负数/超过两位小数的情况
+    if price_min is not None and price_min.strip() != "" and min_cents is None:
+        raise ApiError("INVALID_FILTER", f"price_min 必须是有效金额，收到 {price_min!r}")
+    if price_max is not None and price_max.strip() != "" and max_cents is None:
+        raise ApiError("INVALID_FILTER", f"price_max 必须是有效金额，收到 {price_max!r}")
+
+    # 检查区间有效性
+    if min_cents is not None and max_cents is not None and min_cents > max_cents:
+        raise ApiError(
+            "INVALID_FILTER",
+            f"price_min({price_min}) 不能大于 price_max({price_max})",
+        )
+
+    return min_cents, max_cents
+```
+
+### workdir/biz/catalog/store.py#yuan_to_cents
+- 入选原因：全文/向量相似（未经规格声明，供参考）
+
+```python
+def yuan_to_cents(raw: str | int | float | Decimal) -> int:
+    """把「元」金额换算成「分」，按四舍五入保留两位小数。"""
+    value = Decimal(str(raw)).quantize(Decimal("0.01"))
+    return int(value * 100)
+```
+
+### workdir/biz/catalog/service.py#parse_price
+- 入选原因：全文/向量相似（未经规格声明，供参考）
+
+```python
+def parse_price(raw: str | None) -> int | None:
+    """把「元」字符串解析成「分」的整数。
+
+    最多两位小数；负数、非数字、或超过两位小数视为非法，返回 None（由调用方抛出 ApiError）。
+    """
+    if raw is None or raw.strip() == "":
+        return None
+    s = raw.strip()
+    try:
+        # Decimal 会把逗号当千位分隔符（如 '1,299' -> 1299），按规格这应该被拒绝。
+        # 先用字符串检查：只允许数字、单个可选小数点、前面可选负号。
+        if "." in s:
+            integer_part, fractional_part = s.split(".", 1)
+            # 整数部分只允许数字，可选前缀负号
+            if integer_part.startswith("-"):
+                integer_digits = integer_part[1:]
+            else:
+                integer_digits = integer_part
+            if not integer_digits.isdigit() or len(fractional_part) > 2:
+                return None
+        else:
+            # 无小数点：必须是纯数字（可选负号）
+            if s.startswith("-"):
+                digits = s[1:]
+            else:
+                digits = s
+            if not digits.isdigit():
+                return None
+
+        value = Decimal(s)
+        if value < 0:
+            return None
+        # 量化到两位小数，四舍五入
+        quantized = value.quantize(Decimal("0.01"))
+        return int(quantized * 100)
+    except (InvalidOperation, ValueError):
+        return None
+```
+
+### workdir/biz/catalog/api.py#PRODUCTS_PATH
+- 入选原因：全文/向量相似（未经规格声明，供参考）
+
+```python
+PRODUCTS_PATH = "/api/products"
+```
+
 ## 3. 验证用测试（31 个）
 - [target] `workdir/tests/test_search_target.py::test_deprecated_parameter_names_are_ignored` · 规格 ADR-0011 声明的验证用例
 - [regression] `workdir/tests/test_search_regression.py::test_keyword_matches_name` · 规格 COMPAT-001 声明的验证用例
@@ -443,25 +579,24 @@ class ApiError(Exception):
 
 ## 4. 任务状态（PowerContext）
 - 任务：T-2026-1028 · 商品目录检索：新增价格区间与库存筛选
-- Scope：`scp_1v16tw28vh35ygy2n5vdvf99ms` · 状态条目 16 条
+- Scope：`scp_1v16tw28vh35ygy2n5vdvf99ms` · 状态条目 13 条
 - 已完成：
-  - 实现 FILTER-003：非法过滤参数返回 400 INVALID_FILTER
-  - 实现 FILTER-004：过滤顺序 keyword->价格->库存->排序->分页，total 取过滤后总数
-  - MiniMax 已完成 price_min/price_max 与 in_stock_only 的实现，目标测试与回归测试全部通过
   - 实现 FILTER-001：price_min/price_max 闭区间过滤（元转分、最多两位小数）
+  - MiniMax（minimax/minimax-m2.5）完成实现，2 轮内 31 个测试全部通过
+  - 实现 FILTER-004：过滤顺序 keyword->价格->库存->排序->分页，total 取过滤后总数
+  - 实现 FILTER-003：非法过滤参数返回 400 INVALID_FILTER
   - 实现 FILTER-002：in_stock_only 真值/假值集合与 stock>0 过滤
 - 待办：
   - 成本优化：为 context 装配加一层按 task 的检索结果缓存，降低重复查询
   - 跨模块协作：订单服务复用同一套 INVALID_FILTER 错误码（待 ADR-0012 定稿）
 - 已有验证结果：
-  - baseline-target：退出码 1，通过 3，失败 14（退出码 1）
-  - baseline-regression：退出码 0，通过 14，失败 0（退出码 0）
-  - after-change：退出码 0，通过 31，失败 0（退出码 0）
-  - round1-repro：退出码 0，通过 1，失败 30（退出码 0）
+  - baseline-regression：退出码 0，通过 14，失败 0 · 日志 docs/logs/20261028-141335-baseline-regression.log
+  - after-change：退出码 0，通过 31，失败 0 · 日志 docs/logs/20261028-141338-after-change.log
+  - module-tests：退出码 0，通过 12，失败 0 · 日志 docs/logs/20261028-141349-module-tests.log
+  - baseline-target：退出码 1，通过 3，失败 14 · 日志 docs/logs/20261028-141333-baseline-target.log
 
 ## 5. 已失效 / 被取代的规格（1 条，已排除）
 - ADR-0007 检索参数命名使用 min_price / max_price（superseded → 由 ADR-0011 取代） · 来源 `data/specs/ADR-0007-filter-param-naming.md`
 
 ## 6. 检索审计
-- seekdb：run_id=1 · 耗时 174ms · 命中 57 行（全文 21，向量 36）
-- 预算裁剪：workdir/biz/catalog/api.py, workdir/biz/catalog/service.py, workdir/biz/catalog/store.py, workdir/biz/catalog/service.py
+- seekdb：run_id=1 · 耗时 150ms · 命中 57 行（全文 21，向量 36）

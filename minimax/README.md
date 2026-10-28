@@ -164,10 +164,11 @@ python -m sddctx <command> [options]
 | `import [--reset] [--force]` | `data/specs/`、`workdir/` | 导入统计 JSON（文档/条目/片段/符号数） |
 | `context --task "..." [--task-id T] [--json] [--max-bytes N]` | 任务描述（必填）、任务 ID（可选） | Markdown 上下文；`--json` 时为结构化 JSON |
 | `state init/add/show` | 任务 ID、标题、条目内容 | 写入/读回结果，含 PowerContext `entry_id` |
+| `state prune` | 任务 ID、原因 | 撤回该任务的全部状态条目（PowerContext retire，保留审计痕迹） |
 | `verify --task-id T --label L -- <命令>` | 任意测试命令 | 执行日志文件 + 退出码，并把结果写入 PowerContext |
 | `db stats` / `db sql --sql "..."` | — | 库内存量统计 / 任意查询结果 |
 
-`context` 的 JSON 结构（`schema = sddctx.context/v1`）：
+`context` 的 JSON 结构（`schema = sddctx.context/v1`，下列数字为一次真实运行的示例值）：
 
 ```json
 {
@@ -185,8 +186,8 @@ python -m sddctx <command> [options]
   "tests": [{"path": "workdir/tests/test_search_target.py", "test_id": "test_price_max_only",
              "kind": "target", "source": "anchor"}],
   "state": {"task_id": "T-2026-1028", "done": ["..."], "todo": ["..."], "validations": [{"exit_code": 0}]},
-  "retrieval": {"run_id": 5, "latency_ms": 197, "hit_channels": {"fts": 21, "vector": 36}},
-  "diagnostics": {"missing_refs": [], "truncated": false, "rendered_bytes": 24305}
+  "retrieval": {"run_id": 1, "latency_ms": 150, "hit_channels": {"fts": 21, "vector": 36}},
+  "diagnostics": {"missing_refs": [], "truncated": false, "rendered_bytes": 30725, "budget_bytes": 32000}
 }
 ```
 

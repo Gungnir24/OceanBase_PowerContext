@@ -28,9 +28,6 @@ from .ingest import ingest
 from .powercontext import PowerContextClient, PowerContextError
 from .state import TaskStateStore
 
-PYTEST_SUMMARY_RE = r"(\d+) passed"
-PYTEST_FAILED_RE = r"(\d+) failed"
-
 
 def _print_json(payload: dict) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -222,6 +219,10 @@ def cmd_state(args: argparse.Namespace) -> int:
                     f" · {entry.meta.get('command', '')}"
                 )
         return 0
+    if args.action == "prune":
+        removed = store.prune(args.task_id, getattr(args, "reason", ""))
+        _print_json({"ok": True, "task_id": args.task_id, "retired": removed})
+        return 0
     print(f"未知 action: {args.action}", file=sys.stderr)
     return 2
 
@@ -390,6 +391,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_show = state_sub.add_parser("show")
     p_show.add_argument("--task-id", required=True)
     p_show.add_argument("--json", action="store_true")
+    p_prune = state_sub.add_parser("prune", help="撤回该任务的全部状态条目（保留审计痕迹）")
+    p_prune.add_argument("--task-id", required=True)
+    p_prune.add_argument("--reason", default="")
 
     p_verify = sub.add_parser("verify", help="运行测试并记录验证结果")
     p_verify.add_argument("--task-id", required=True)

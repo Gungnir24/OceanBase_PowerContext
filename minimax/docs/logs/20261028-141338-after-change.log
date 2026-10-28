@@ -1,8 +1,8 @@
 command: D:\Anaconda3\python.exe -m pytest workdir/tests -q
 cwd: D:\OceanBase\OceanBase_PowerContext\minimax
-started: 2026-10-28T14:04:17
+started: 2026-10-28T14:13:38
 exit_code: 0
-code_version: 1334722
+code_version: 263ba00
 python: 3.14.6
 label: after-change
 ------------------------------------------------------------------------

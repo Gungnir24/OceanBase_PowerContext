@@ -24,7 +24,7 @@ from .db import SeekDb
 from .retrieve import ChunkHit, clauses_by_applicability, lookup_clauses, search
 
 ENDPOINT_RE = re.compile(r"/api/[A-Za-z0-9_\-/]+")
-DEFAULT_MAX_BYTES = 12000
+DEFAULT_MAX_BYTES = 32000
 EXCERPT_CHARS = 1600
 SEMANTIC_CODE_LIMIT = 6
 SEMANTIC_TEST_LIMIT = 4
@@ -366,6 +366,10 @@ def build_context(
     context["diagnostics"]["dropped"] = dropped
     context["diagnostics"]["rendered_bytes"] = len(markdown.encode("utf-8"))
     context["diagnostics"]["budget_bytes"] = max_bytes
+    # 规格条目与锚点永不丢弃，所以极端预算下输出可能仍然超出预算，这里如实标注
+    context["diagnostics"]["over_budget"] = (
+        context["diagnostics"]["rendered_bytes"] > max_bytes
+    )
 
     latency_ms = int((time.perf_counter() - started) * 1000)
     audit = spec_audit + code_audit + test_audit
@@ -392,6 +396,11 @@ def build_context(
         context["retrieval"]["run_id"] = run_id
 
     context["markdown"] = render_markdown(context)
+    # 以最终渲染结果为准回填字节数（渲染本身会追加一行预算提示）
+    context["diagnostics"]["rendered_bytes"] = len(context["markdown"].encode("utf-8"))
+    context["diagnostics"]["over_budget"] = (
+        context["diagnostics"]["rendered_bytes"] > max_bytes
+    )
     return context
 
 
@@ -469,8 +478,10 @@ def render_markdown(context: dict) -> str:
         lines.append("- 已有验证结果：")
         if state.get("validations"):
             for item in state["validations"]:
-                exit_code = item.get("exit_code")
-                lines.append(f"  - {item['text']}（退出码 {exit_code}）")
+                # 验证条目的正文里已经带了退出码与通过/失败数量，这里只补日志位置
+                detail = item.get("log") or ""
+                suffix = f" · 日志 {detail}" if detail else ""
+                lines.append(f"  - {item['text']}{suffix}")
         else:
             lines.append("  - （无）")
 
@@ -500,4 +511,9 @@ def render_markdown(context: dict) -> str:
             lines.append(f"  - {item['ref']}（{item['reason']}）")
     if context["diagnostics"]["dropped"]:
         lines.append(f"- 预算裁剪：{', '.join(context['diagnostics']['dropped'])}")
+    if context["diagnostics"].get("over_budget"):
+        lines.append(
+            f"- 注意：规格与锚点不参与裁剪，当前输出仍超出预算 "
+            f"{context['diagnostics']['budget_bytes']} 字节"
+        )
     return "\n".join(lines).strip() + "\n"
