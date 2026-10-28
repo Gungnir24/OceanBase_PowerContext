@@ -1,0 +1,297 @@
+{
+  "version": 1,
+  "name": "端侧 AI 技术知识库",
+  "description": "围绕浏览器本地推理、模型量化、seekdb 混合检索与性能评测的示例语料，共 24 篇文档。",
+  "documents": [
+    {
+      "id": "doc_webgpu_backend",
+      "title": "WebGPU 与 WASM：端侧推理后端如何选择",
+      "source": "技术笔记/01-webgpu-backend.md",
+      "category": "端侧推理",
+      "text": "端侧推理的第一原则是计算必须发生在用户设备上。应用启动时先检测 navigator.gpu 是否存在，再调用 requestAdapter() 申请 GPU 适配器；只有拿到适配器并成功创建 GPUDevice，才把推理后端标记为 WebGPU。WebGPU 路径使用 fp16 精度的 ONNX 模型，通过 Transformers.js 的 device: 'webgpu' 与 dtype: 'fp16' 显式配置，不能依赖运行时的隐式选择。\n\n如果浏览器没有 navigator.gpu、适配器申请失败、模型编译报错或设备丢失，应用必须自动降级到 WASM，而不是让整个流程失败。降级后改用 q8（INT8）模型，仍在本机 CPU 上完成全部 embedding 计算。界面需要明确显示当前后端是 WebGPU 还是 WASM，并给出降级原因，例如“WebGPU 适配器不可用”。本次实测设备为 Intel UHD Graphics 630（Gen9），Edge 156 在 localhost 安全上下文中可以成功申请 WebGPU 适配器，并支持 shader-f16 特性。"
+    },
+    {
+      "id": "doc_wasm_backend",
+      "title": "WASM 后端、SIMD 与多线程",
+      "source": "技术笔记/02-wasm-backend.md",
+      "category": "端侧推理",
+      "text": "WASM 是 WebGPU 不可用时的保底路径。ONNX Runtime Web 的 WASM 后端支持 SIMD 与多线程；多线程依赖 SharedArrayBuffer，而 SharedArrayBuffer 要求页面处于 cross-origin isolated 状态。因此开发服务器和生产服务器都需要发送 Cross-Origin-Opener-Policy: same-origin 与 Cross-Origin-Embedder-Policy: require-corp 响应头。\n\n启用隔离后，可以把 env.backends.onnx.wasm.numThreads 设置为 min(4, navigator.hardwareConcurrency)，让矩阵计算并行化。WASM 的优势是兼容性最好、启动确定，缺点是矩阵乘法吞吐通常低于独立显卡；在集成显卡或小 batch 场景下，WASM 的延迟可能反而更低。因此应用优先尝试 WebGPU，但保留一键“强制 WASM”用于降级演练和基准对比。所有模型文件都从同源 /models 目录加载，推理过程不访问任何云端 API。"
+    },
+    {
+      "id": "doc_int8_quant",
+      "title": "INT8 与 FP16 量化：体积、压缩比与精度",
+      "source": "技术笔记/03-quantization.md",
+      "category": "模型量化",
+      "text": "本次使用 BAAI/bge-small-zh-v1.5 的 ONNX 转换版本，固定 Hugging Face revision 75c43b069aac4d136ba6bc1122f995fedcfd2781。FP32 权重文件 onnx/model.onnx 为 94,851,877 字节；FP16 文件 onnx/model_fp16.onnx 为 47,497,427 字节；INT8 动态量化文件 onnx/model_quantized.onnx 为 24,010,842 字节。\n\n按 ONNX 权重计算，INT8 相对 FP32 的压缩比为 94,851,877 / 24,010,842 ≈ 3.95 倍；FP16 的压缩比为 94,851,877 / 47,497,427 ≈ 2.00 倍。若把 tokenizer、config 等运行文件一起计入，INT8 运行包约 24.5 MB，FP32 运行包约 95.3 MB，压缩比仍约 3.9 倍。INT8 采用 ONNX Runtime 动态权重量化，激活值在推理时动态量化，不需要校准数据集；FP16 则把权重和计算精度降为半精度。量化会带来轻微向量漂移，必须用固定查询集比较 Recall@5、nDCG@5 与 Top-5 文档重合度，而不能只看界面观感。"
+    },
+    {
+      "id": "doc_bge_model",
+      "title": "bge-small-zh-v1.5：面向中文检索的小型 embedding 模型",
+      "source": "技术笔记/04-bge-model.md",
+      "category": "模型量化",
+      "text": "bge-small-zh-v1.5 是 BAAI 发布的中文检索 embedding 模型，采用 BERT 类结构，隐藏维度 512，最大输入 512 token，参数量约 2400 万，许可证为 MIT。它体积小、中文语义检索能力强，适合在浏览器中运行。Hugging Face 上的 Xenova/bge-small-zh-v1.5 提供了 ONNX 权重与 tokenizer，Transformers.js 可以直接加载。\n\n检索时文档侧直接编码原文；查询侧建议加指令前缀“为这个句子生成表示以用于检索相关文章：”，以贴近模型训练时的检索任务。Transformers.js pipeline 使用 pooling: 'cls' 与 normalize: true，输出 512 维单位向量。文档向量与查询向量必须使用同一个模型、同一精度口径；如果知识库用 FP32 建库、查询却用 INT8，虽然维度仍为 512，但向量空间存在轻微偏移，质量对比时不能混用。"
+    },
+    {
+      "id": "doc_transformersjs",
+      "title": "Transformers.js 本地加载与进度回调",
+      "source": "技术笔记/05-transformersjs.md",
+      "category": "端侧推理",
+      "text": "Transformers.js 把 tokenizer、ONNX Runtime Web 与模型加载封装成 pipeline。为了避免任何远程推理或隐式下载，应用设置 env.allowRemoteModels = false、env.allowLocalModels = true、env.localModelPath = '/models/'，模型 ID 固定为 bge-small-zh-v1.5。这样 from_pretrained 只会请求同源静态文件，例如 /models/bge-small-zh-v1.5/onnx/model_quantized.onnx。\n\n模型加载阶段通过 progress_callback 接收每个文件的加载百分比，用于界面进度条。首次加载会读取约 24 MB 的 INT8 权重或约 47 MB 的 FP16 权重；浏览器 HTTP 缓存与 Cache API 会让后续加载显著加快。应用在模型加载完成后先做一次 warmup 推理，避免把首 token 的图编译时间算进用户查询延迟。若加载失败，界面展示具体文件和错误，并允许重试或切换到 WASM。"
+    },
+    {
+      "id": "doc_chunking",
+      "title": "文档分块：长度、重叠与语义完整性",
+      "source": "技术笔记/06-chunking.md",
+      "category": "知识库",
+      "text": "检索质量很大程度取决于分块。块太长会稀释主题，块太短会丢失上下文。本应用以约 280 个字符为目标长度，优先在段落、句号、问号、感叹号和分号处切分；相邻块保留约 48 个字符的重叠，避免一个完整结论被切断。每个块记录 docId、title、source、chunkIndex 与字符数，作为 seekdb 中的元数据。\n\n分块发生在浏览器端，原文和块文本都会写入 seekdb，而不是只存向量。这样检索结果可以直接展示原文片段，并支持按 docId 删除或重新导入。块 ID 由文档 ID 与块序号组成，重复导入同一文档时先删除旧块再写入新块，保证知识库不会出现重复结果。对于 Markdown 文件，标题会作为文档标题，文件路径作为来源，正文按段落切分。"
+    },
+    {
+      "id": "doc_seekdb_overview",
+      "title": "seekdb 1.4：面向 AI 应用的混合检索数据库",
+      "source": "技术笔记/07-seekdb-overview.md",
+      "category": "seekdb",
+      "text": "seekdb 是 OceanBase 推出的 AI 原生数据库，兼容 MySQL 协议，支持向量类型、向量索引、全文索引与混合检索。它既可以嵌入式方式运行，也可以作为本地 server 运行。本项目使用 Docker 启动 seekdb 1.4.0 服务端，Node.js 后端通过 seekdb-js 连接 127.0.0.1:2881，数据库名为 stepfun_kb。\n\n应用为每个知识库创建独立 collection，collection 内保存块文本、512 维向量与 JSON 元数据；另外用 kb_registry、kb_docs、search_logs 三张关系表管理知识库、文档与检索审计。浏览器只负责计算 embedding，向 Node API 发送向量和文本；所有持久化、向量近邻与全文匹配都由 seekdb 执行。这样可以避免把数据库能力搬到客户端，也能让多个会话共享同一份知识库。"
+    },
+    {
+      "id": "doc_seekdb_vector",
+      "title": "seekdb 向量索引：VECTOR(512) 与 HNSW",
+      "source": "技术笔记/08-seekdb-vector.md",
+      "category": "seekdb",
+      "text": "每个 collection 的 embedding 列是 VECTOR(512)，距离度量使用 cosine。seekdb-js 的 VectorIndexConfig 指定 hnsw: { dimension: 512, distance: 'cosine' }，底层使用 HNSW 近似最近邻索引。HNSW 通过多层图结构在召回率与延迟之间取得平衡；数据量增大时，查询不需要扫描全部向量。\n\n写入时，seekdb-js 把向量序列化为数组写入向量列，并同步写入 document 与 metadata。向量索引的刷新由 dbms_index_manager.refresh() 触发，见 collection.refresh_index()。应用在每次导入结束后调用一次刷新，确保新块对后续查询可见。向量检索接口是 collection.query()，返回按 cosine 距离升序排列的结果；混合检索则由 DBMS_HYBRID_SEARCH 同时使用向量索引与全文索引。"
+    },
+    {
+      "id": "doc_seekdb_fulltext",
+      "title": "seekdb 全文索引与 IK 中文分词",
+      "source": "技术笔记/09-seekdb-fulltext.md",
+      "category": "seekdb",
+      "text": "全文索引使用 seekdb 的 FULLTEXT 能力，分词器选择 IK，模式为 smart。IK 能识别中文词语，不需要在客户端手工插入空格；对于“向量检索”“模型量化”这类中文术语，全文索引可以正确切词并计算 BM25 相关度。创建 collection 时通过 FulltextIndexConfig('ik', { ik_mode: 'smart' }) 声明全文索引，document 列自动参与索引。\n\n关键词检索使用 DBMS_HYBRID_SEARCH 的 query_string 子句，字段为 document。查询串会先清理 Lucene 特殊字符，避免用户输入括号、引号或斜杠导致语法错误。关键词模式不计算查询向量，但仍然由 seekdb 执行全文匹配与排序，返回 BM25 分数。混合模式下，全文查询与向量查询各自召回候选，再由数据库内的 RRF 融合，而不是由前端拼接两个结果列表。"
+    },
+    {
+      "id": "doc_hybrid_rrf",
+      "title": "数据库内混合检索：DBMS_HYBRID_SEARCH 与 RRF",
+      "source": "技术笔记/10-hybrid-rrf.md",
+      "category": "seekdb",
+      "text": "混合检索要求同时利用语义相似与关键词精确匹配。seekdb-js 的 collection.hybridSearch() 会调用 DBMS_HYBRID_SEARCH.GET_SQL 生成一条数据库端检索语句，把 query、knn、rank 与 size 组合成一个 search_parm，再在 seekdb 内执行。应用只收到最终排序结果，不会分别拿到向量结果和全文结果后自行拼合。\n\n融合算法使用 Reciprocal Rank Fusion（RRF）。每个候选文档在每一路的排名为 rank，融合分数为 Σ 1 / (rank_constant + rank)，本应用设置 rank_window_size = 60、rank_constant = 60。RRF 不依赖两路分数量纲，适合 cosine 距离与 BM25 分数不可直接比较的场景。界面显示的“RRF 融合分”来自数据库返回值；前端只负责展示，不重新排序。数据库内融合也保证了分页、过滤与一致性由同一引擎完成。"
+    },
+    {
+      "id": "doc_index_refresh",
+      "title": "增量写入与索引刷新：新文档何时可检索",
+      "source": "技术笔记/11-index-refresh.md",
+      "category": "seekdb",
+      "text": "seekdb 的向量索引与全文索引在写入后需要刷新才能对查询可见。应用在导入流程的最后调用 collection.refresh_index()，它执行 CALL dbms_index_manager.refresh()，并记录 refreshMs 与 lastRefreshAt。刷新完成后，界面会明确提示“索引已刷新，新增内容可检索”，随后才允许用户发起搜索。\n\n增量导入时，每个文档单独写入，块 ID 稳定；重复导入同一文档会先按 docId 删除旧块，再写入新块，避免重复。刷新是全局索引操作，批量导入应合并为一次刷新，而不是每写一个文档刷新一次。实测首次刷新约 715 ms，后续刷新通常在数十到数百毫秒；如果把刷新放在每个批次后，导入总耗时会显著增加。应用默认在整批导入结束后刷新一次，同时提供手动“刷新索引”按钮用于验证可见性。"
+    },
+    {
+      "id": "doc_privacy",
+      "title": "端侧推理与隐私：模型下载不等于云端推理",
+      "source": "技术笔记/12-privacy.md",
+      "category": "端侧推理",
+      "text": "端侧推理的核心约束是：文本、查询和向量不能发送到云端模型服务。模型文件可以从公开地址下载一次，也可以随应用本地托管；下载模型权重不等于调用云端推理 API。本应用把 ONNX 权重放在同源 /models 目录，浏览器加载后在本地 WebGPU 或 WASM 上执行前向计算，Node 后端只接收已经算好的向量和原文，用于 seekdb 持久化与检索。\n\n为了证明没有云端推理，界面展示当前后端、模型文件来源与模型 revision，并在“技术说明”中列出网络请求范围：/models 静态文件、/api 本地接口、seekdb 本地连接。应用没有配置任何模型 API Key，也没有把用户文本发送给第三方。即使部署到公网，前端仍然在访问者设备上完成 embedding，服务器只承担 seekdb 数据层与静态资源服务。"
+    },
+    {
+      "id": "doc_perf_metrics",
+      "title": "性能测试方法：冷启动、预热与分位数",
+      "source": "技术笔记/13-performance-metrics.md",
+      "category": "性能",
+      "text": "性能数字必须可复现。固定条件包括：同一台设备、同一浏览器版本、同一语料与查询集、同一模型 revision、同一精度、同一推理后端、同一批大小与同一 seekdb 配置。计时分为模型下载与加载、文档向量化、写入与索引刷新、查询向量化、seekdb 检索、端到端延迟六个阶段。\n\n首次加载与预热后的请求要分开报告。首次加载包含权重下载、ONNX 图初始化与 warmup；预热后只包含实际推理。每个配置至少重复 3 次，报告中位数，并保留 p95 与原始 JSON。端到端延迟从用户点击搜索开始，到结果可展示结束，包含查询 embedding、HTTP 往返与数据库检索，不包含模型首次加载。不能只报告最快一次，也不能在报告中混用不同设备或不同批大小的数据。"
+    },
+    {
+      "id": "doc_batching",
+      "title": "Embedding 批处理：吞吐与延迟的权衡",
+      "source": "技术笔记/14-batching.md",
+      "category": "性能",
+      "text": "批处理把多个文本拼成一个张量送入模型，能提高 GPU 利用率并减少每次调用的固定开销。批越大，吞吐通常越高，但单次请求延迟也越高，而且 padding 会浪费计算。文档导入场景关注总吞吐，适合较大 batch；交互式查询只有一条文本，batch 固定为 1。\n\n本应用在文档向量化时按 8 条（WASM）或 16 条（WebGPU）分批，并显示已处理块数与吞吐。对于很短的文本，batch=1 的逐条延迟可能更低；对于 200 到 300 字的中文块，较大 batch 能摊薄 tokenizer 与推理调用开销。优化对比必须保持模型、精度、后端和语料一致，只改变 batch size。界面与基准脚本都会记录 batchSize，避免把不同配置的数字直接比较。"
+    },
+    {
+      "id": "doc_hnsw",
+      "title": "HNSW 参数：M、efConstruction 与 efSearch",
+      "source": "技术笔记/15-hnsw.md",
+      "category": "seekdb",
+      "text": "HNSW 用多层近邻图组织向量。M 控制每个节点的连接数，越大召回越高但索引越大；efConstruction 控制建图时的候选队列长度，越大索引质量越好但构建越慢；efSearch 控制查询时的候选队列长度，越大召回越高但延迟越高。seekdb 的向量索引由数据库管理，应用通过 collection 配置声明维度与距离度量。\n\n对于本项目的数千级块规模，HNSW 的召回已经足够，主要延迟来自网络往返、查询 embedding 与数据库调度，而不是图遍历。因此优化重点放在模型加载、批处理与减少重复刷新上。若数据规模增长到百万级，应单独调优 M 与 efSearch，并用 Recall@K 与 p95 延迟画权衡曲线。技术说明中需要注明索引类型、距离度量与参数，不能只写“使用了向量索引”。"
+    },
+    {
+      "id": "doc_evaluation",
+      "title": "检索质量评估：Recall@K、nDCG@K 与 MRR",
+      "source": "技术笔记/16-evaluation.md",
+      "category": "评测",
+      "text": "量化前后的质量对比需要固定评测集。本应用内置 24 篇文档与 24 条查询，每条查询标注 1 到 2 个相关文档。检索返回块结果后，按 docId 去重，取前 5 个文档计算指标。Recall@5 衡量相关文档被召回的比例；nDCG@5 使用折损累积增益，越相关的结果排得越靠前分数越高；MRR 关注第一个相关结果的名次。\n\n评测时只改变模型精度，语料、分块、查询、后端、topK 与 seekdb 配置保持一致。除了指标，还计算量化模型与 FP32 基线的 Top-5 文档重合度，以及同一文本的向量余弦相似度。若指标下降在 1 个百分点以内，可认为量化对检索质量影响很小；若下降明显，应检查是否混用了不同精度的文档向量与查询向量。原始逐查询结果保存在 benchmarks/results 下，便于复核。"
+    },
+    {
+      "id": "doc_browser_cache",
+      "title": "浏览器缓存：Cache API、HTTP 缓存与模型复用",
+      "source": "技术笔记/17-browser-cache.md",
+      "category": "端侧推理",
+      "text": "模型文件较大，重复下载会显著拖慢冷启动。Transformers.js 默认使用浏览器 Cache API 缓存模型响应；同时静态服务器为 /models 下的 ONNX 与 tokenizer 文件设置 Cache-Control 与 ETag，让第二次访问直接命中 HTTP 缓存。应用在模型加载完成后保持 pipeline 单例，后续文档导入与查询复用同一个 session，避免重复初始化。\n\n缓存只影响加载时间，不影响推理位置。即使模型来自缓存，前向计算仍在 WebGPU 或 WASM 中执行。基准测试需要区分冷加载与热加载：冷加载在全新浏览器上下文中进行，热加载在同一 context 中刷新页面后进行。应用界面显示“模型加载耗时”，并在技术说明中分别报告冷、热两组数字。"
+    },
+    {
+      "id": "doc_rag_flow",
+      "title": "完整链路：导入、向量化、写入、刷新、检索",
+      "source": "技术笔记/18-rag-flow.md",
+      "category": "知识库",
+      "text": "迷你知识库的完整链路有六步。第一，用户拖入 txt 或 md 文件，或载入内置示例语料；第二，浏览器按段落与长度切块，保留标题、来源与块序号；第三，Transformers.js 在本地批量计算 512 维向量；第四，Node API 把块文本、向量与元数据写入 seekdb collection，并登记文档；第五，调用 refresh_index 刷新向量与全文索引；第六，用户输入查询，浏览器本地计算查询向量，seekdb 执行混合检索并返回排序结果。\n\n每一步都有可观测状态：模型加载显示文件与百分比，向量化显示已完成块数，写入显示批次，刷新显示毫秒数，检索显示查询 embedding、数据库检索与端到端延迟。任何一步失败都不会静默跳过；例如 seekdb 未启动时，界面提示运行 docker compose up -d，而不是退回内存检索。这个约束保证应用始终使用 seekdb 完成存储与检索。"
+    },
+    {
+      "id": "doc_session_state",
+      "title": "集合与会话状态：切换知识库后结果保持一致",
+      "source": "技术笔记/19-session-state.md",
+      "category": "知识库",
+      "text": "每个知识库对应一个独立的 seekdb collection，名称由 kb_ 加随机 ID 组成。kb_registry 表保存显示名称、描述、创建时间、最近刷新时间与当前模型精度；kb_docs 表保存文档级元数据；search_logs 表保存每次检索的查询、模式、延迟与 Top 结果 ID。前端把当前知识库 ID 写入 localStorage，刷新页面后恢复同一个会话。\n\n切换知识库时，前端先取消未完成的导入任务，再拉取新知识库的文档、统计与最近检索记录；搜索请求始终携带当前 kbId，后端按 collection 隔离数据，不会把不同知识库的结果混在一起。删除知识库会同时删除 collection、文档登记与检索日志。增量导入后，文档数与块数从 kb_docs 聚合，避免前端用本地数组猜测状态。"
+    },
+    {
+      "id": "doc_incremental",
+      "title": "增量导入与幂等：重复文档、删除与重建",
+      "source": "技术笔记/20-incremental.md",
+      "category": "知识库",
+      "text": "增量导入要求同一文档重复导入不会产生重复块。前端用文档内容 SHA-256 与标题生成稳定 docId，块 ID 为 docId 加块序号。后端写入前先执行 collection.delete({ where: { docId } })，再批量 add 新块；如果文档已存在，相当于原子地替换旧版本。删除文档时同时删除向量块与 kb_docs 记录，并更新知识库时间。\n\n新增文档不需要重建整个 collection；写入完成后统一刷新一次索引即可。若导入过程中失败，已写入的前序文档仍然保留，用户可重试失败文档。知识库统计从数据库聚合，而不是从浏览器内存累加，因此多标签页或多会话看到的状态一致。对于大型语料，可以按每批 32 个块写入，减少单条 SQL 的体积。"
+    },
+    {
+      "id": "doc_distractor_cooking",
+      "title": "红烧肉的家常做法",
+      "source": "生活/红烧肉.md",
+      "category": "生活",
+      "text": "五花肉切块后冷水下锅，加姜片和料酒焯水，撇去浮沫捞出。锅中放少量油，加入冰糖小火炒出枣红色，倒入肉块翻炒上色，再加生抽、老抽、八角、桂皮和热水，水量没过肉块。大火烧开后转小火炖四十分钟，最后开大火收汁，汤汁浓稠即可。喜欢软烂口感可以延长炖煮时间，但要注意翻动避免粘锅。"
+    },
+    {
+      "id": "doc_distractor_travel",
+      "title": "京都秋天看枫叶的路线",
+      "source": "旅行/京都.md",
+      "category": "旅行",
+      "text": "京都的枫叶季通常在十一月下旬进入高峰。清水寺的舞台可以俯瞰整片红叶，早上八点前人流较少；哲学之道适合沿河散步，两侧是密集的枫树与银杏；岚山竹林与渡月桥可以安排在同一天，傍晚光线柔和。东福寺的通天桥是经典机位，但排队时间较长。建议购买巴士一日券，避开周末与日本连休。"
+    },
+    {
+      "id": "doc_distractor_finance",
+      "title": "指数基金定投的几点常识",
+      "source": "理财/指数基金.md",
+      "category": "理财",
+      "text": "指数基金跟踪特定市场指数，费率通常低于主动基金。定投通过固定时间投入固定金额，平滑买入成本，但不能保证收益。选择基金时要看跟踪误差、规模、费率与成立时间，宽基指数适合长期配置，行业指数波动更大。定投需要预留生活备用金，避免在下跌时被迫卖出。任何投资都有风险，历史收益不代表未来表现。"
+    },
+    {
+      "id": "doc_distractor_sports",
+      "title": "马拉松训练计划与配速",
+      "source": "运动/马拉松.md",
+      "category": "运动",
+      "text": "准备全程马拉松通常需要十六到二十周的系统训练。每周安排一次长距离慢跑，逐渐从十五公里增加到三十公里；两次轻松跑用于恢复；一次节奏跑或间歇跑提升乳酸阈值。比赛前两周开始减量，保证睡眠与碳水摄入。配速应以心率与体感为准，前半程不要冲太快，补给站按计划补水与能量胶。"
+    }
+  ],
+  "queries": [
+    {
+      "q": "WebGPU 不可用时应用会怎样处理？",
+      "type": "semantic",
+      "relevant": ["doc_webgpu_backend", "doc_wasm_backend"]
+    },
+    {
+      "q": "INT8 量化后模型体积压缩了多少倍？",
+      "type": "keyword",
+      "relevant": ["doc_int8_quant"]
+    },
+    {
+      "q": "seekdb 的向量索引使用什么算法？",
+      "type": "semantic",
+      "relevant": ["doc_seekdb_vector"]
+    },
+    {
+      "q": "中文全文检索使用哪个分词器？",
+      "type": "keyword",
+      "relevant": ["doc_seekdb_fulltext"]
+    },
+    {
+      "q": "RRF 融合分数如何计算，为什么适合混合检索？",
+      "type": "semantic",
+      "relevant": ["doc_hybrid_rrf"]
+    },
+    {
+      "q": "新导入的文档什么时候才能被搜索到？",
+      "type": "semantic",
+      "relevant": ["doc_index_refresh"]
+    },
+    {
+      "q": "bge-small-zh-v1.5 输出多少维向量？",
+      "type": "keyword",
+      "relevant": ["doc_bge_model"]
+    },
+    {
+      "q": "怎样评估量化前后的检索质量？",
+      "type": "semantic",
+      "relevant": ["doc_evaluation"]
+    },
+    {
+      "q": "浏览器如何缓存模型文件以减少冷启动时间？",
+      "type": "semantic",
+      "relevant": ["doc_browser_cache", "doc_transformersjs"]
+    },
+    {
+      "q": "文档分块为什么需要设置重叠？",
+      "type": "semantic",
+      "relevant": ["doc_chunking"]
+    },
+    {
+      "q": "批处理大小对 embedding 吞吐有什么影响？",
+      "type": "semantic",
+      "relevant": ["doc_batching"]
+    },
+    {
+      "q": "端侧推理如何保护用户隐私？",
+      "type": "semantic",
+      "relevant": ["doc_privacy"]
+    },
+    {
+      "q": "冷启动和预热后的性能应该怎么报告？",
+      "type": "semantic",
+      "relevant": ["doc_perf_metrics"]
+    },
+    {
+      "q": "HNSW 的 efConstruction 参数有什么作用？",
+      "type": "keyword",
+      "relevant": ["doc_hnsw"]
+    },
+    {
+      "q": "Transformers.js 如何从本地目录加载模型？",
+      "type": "semantic",
+      "relevant": ["doc_transformersjs"]
+    },
+    {
+      "q": "seekdb 支持哪些部署方式？",
+      "type": "semantic",
+      "relevant": ["doc_seekdb_overview"]
+    },
+    {
+      "q": "为什么混合检索不能在前端分别取两路结果再拼合？",
+      "type": "semantic",
+      "relevant": ["doc_hybrid_rrf", "doc_seekdb_overview"]
+    },
+    {
+      "q": "从导入文档到展示检索结果的完整流程是什么？",
+      "type": "semantic",
+      "relevant": ["doc_rag_flow"]
+    },
+    {
+      "q": "红烧肉需要炖多长时间？",
+      "type": "keyword",
+      "relevant": ["doc_distractor_cooking"]
+    },
+    {
+      "q": "京都秋天去哪里看枫叶比较好？",
+      "type": "semantic",
+      "relevant": ["doc_distractor_travel"]
+    },
+    {
+      "q": "指数基金定投要注意什么？",
+      "type": "semantic",
+      "relevant": ["doc_distractor_finance"]
+    },
+    {
+      "q": "马拉松比赛前两周应该怎么训练？",
+      "type": "semantic",
+      "relevant": ["doc_distractor_sports"]
+    },
+    {
+      "q": "重复导入同一篇文档会不会产生重复结果？",
+      "type": "semantic",
+      "relevant": ["doc_incremental"]
+    },
+    {
+      "q": "切换知识库后如何保证检索结果与当前集合一致？",
+      "type": "semantic",
+      "relevant": ["doc_session_state"]
+    }
+  ]
+}

@@ -1,0 +1,2529 @@
+{
+  "configs": [
+    {
+      "row": {
+        "label": "FP32 / WASM · b8",
+        "backend": "wasm",
+        "dtype": "fp32",
+        "batchSize": 8,
+        "modelBytes": 94851877,
+        "loadMs": 5711.53,
+        "warmupMs": 71.34,
+        "embedMsPerChunk": 60.03,
+        "queryMs": 12.45,
+        "dbMs": 9.07,
+        "e2eMs": 36.41,
+        "importMs": 1349.11,
+        "writeMs": 817.74,
+        "refreshMs": 531.36,
+        "recall5": 0.9792,
+        "ndcg5": 0.9239,
+        "mrr": 0.9201,
+        "top5Overlap": 1,
+        "note": "质量基线"
+      },
+      "perQuery": [
+        {
+          "q": "WebGPU 不可用时应用会怎样处理？",
+          "docs": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_batching",
+            "doc_hybrid_rrf"
+          ],
+          "top5": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_batching",
+            "doc_hybrid_rrf"
+          ],
+          "queryMs": 11.074999995529652,
+          "dbMs": 56.44,
+          "e2e": 86.20330000000104
+        },
+        {
+          "q": "INT8 量化后模型体积压缩了多少倍？",
+          "docs": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_transformersjs"
+          ],
+          "queryMs": 13.424999997019768,
+          "dbMs": 12.08,
+          "e2e": 40.9178000000029
+        },
+        {
+          "q": "seekdb 的向量索引使用什么算法？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "queryMs": 11.774999998509884,
+          "dbMs": 8.84,
+          "e2e": 38.98999999999796
+        },
+        {
+          "q": "中文全文检索使用哪个分词器？",
+          "docs": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_batching",
+            "doc_seekdb_overview"
+          ],
+          "top5": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_batching",
+            "doc_seekdb_overview"
+          ],
+          "queryMs": 15.375,
+          "dbMs": 11.65,
+          "e2e": 42.03610000000481
+        },
+        {
+          "q": "RRF 融合分数如何计算，为什么适合混合检索？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "queryMs": 17.975000001490116,
+          "dbMs": 17.39,
+          "e2e": 55.763300000005984
+        },
+        {
+          "q": "新导入的文档什么时候才能被搜索到？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "queryMs": 12.119999997317791,
+          "dbMs": 10.16,
+          "e2e": 37.53859999999986
+        },
+        {
+          "q": "bge-small-zh-v1.5 输出多少维向量？",
+          "docs": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "top5": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "queryMs": 13.755000002682209,
+          "dbMs": 9.51,
+          "e2e": 36.031699999999546
+        },
+        {
+          "q": "怎样评估量化前后的检索质量？",
+          "docs": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "queryMs": 12.66499999910593,
+          "dbMs": 9.47,
+          "e2e": 35.31199999999808
+        },
+        {
+          "q": "浏览器如何缓存模型文件以减少冷启动时间？",
+          "docs": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching",
+            "doc_incremental",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching",
+            "doc_incremental",
+            "doc_bge_model"
+          ],
+          "queryMs": 14.20499999821186,
+          "dbMs": 9.06,
+          "e2e": 36.21979999999894
+        },
+        {
+          "q": "文档分块为什么需要设置重叠？",
+          "docs": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 13.200000002980232,
+          "dbMs": 8.51,
+          "e2e": 39.040799999995215
+        },
+        {
+          "q": "批处理大小对 embedding 吞吐有什么影响？",
+          "docs": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "queryMs": 11.924999997019768,
+          "dbMs": 8.92,
+          "e2e": 35.30069999999978
+        },
+        {
+          "q": "端侧推理如何保护用户隐私？",
+          "docs": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "queryMs": 11.859999999403954,
+          "dbMs": 13.97,
+          "e2e": 38.4320000000007
+        },
+        {
+          "q": "冷启动和预热后的性能应该怎么报告？",
+          "docs": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 12.935000002384186,
+          "dbMs": 9.66,
+          "e2e": 37.64270000000397
+        },
+        {
+          "q": "HNSW 的 efConstruction 参数有什么作用？",
+          "docs": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_rag_flow"
+          ],
+          "queryMs": 12.734999999403954,
+          "dbMs": 8.43,
+          "e2e": 41.76050000000396
+        },
+        {
+          "q": "Transformers.js 如何从本地目录加载模型？",
+          "docs": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_privacy",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_privacy",
+            "doc_rag_flow"
+          ],
+          "queryMs": 12.105000004172325,
+          "dbMs": 9.82,
+          "e2e": 35.134500000000116
+        },
+        {
+          "q": "seekdb 支持哪些部署方式？",
+          "docs": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_rag_flow",
+            "doc_wasm_backend",
+            "doc_chunking"
+          ],
+          "top5": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_rag_flow",
+            "doc_wasm_backend",
+            "doc_chunking"
+          ],
+          "queryMs": 11.844999998807907,
+          "dbMs": 9.32,
+          "e2e": 33.79009999999835
+        },
+        {
+          "q": "为什么混合检索不能在前端分别取两路结果再拼合？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_session_state",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_session_state",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "queryMs": 14.714999996125698,
+          "dbMs": 10.37,
+          "e2e": 38.45530000000144
+        },
+        {
+          "q": "从导入文档到展示检索结果的完整流程是什么？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_incremental"
+          ],
+          "queryMs": 15.205000005662441,
+          "dbMs": 8.56,
+          "e2e": 39.7780999999959
+        },
+        {
+          "q": "红烧肉需要炖多长时间？",
+          "docs": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 10.169999994337559,
+          "dbMs": 9.55,
+          "e2e": 36.305499999994936
+        },
+        {
+          "q": "京都秋天去哪里看枫叶比较好？",
+          "docs": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_index_refresh"
+          ],
+          "top5": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_index_refresh"
+          ],
+          "queryMs": 12.174999997019768,
+          "dbMs": 9.4,
+          "e2e": 34.40759999999864
+        },
+        {
+          "q": "指数基金定投要注意什么？",
+          "docs": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 12.365000002086163,
+          "dbMs": 10.57,
+          "e2e": 36.859700000000885
+        },
+        {
+          "q": "马拉松比赛前两周应该怎么训练？",
+          "docs": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_distractor_travel"
+          ],
+          "top5": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_distractor_travel"
+          ],
+          "queryMs": 13.774999998509884,
+          "dbMs": 8.38,
+          "e2e": 38.19090000000142
+        },
+        {
+          "q": "重复导入同一篇文档会不会产生重复结果？",
+          "docs": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_session_state",
+            "doc_index_refresh",
+            "doc_browser_cache"
+          ],
+          "top5": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_session_state",
+            "doc_index_refresh",
+            "doc_browser_cache"
+          ],
+          "queryMs": 12.614999994635582,
+          "dbMs": 8.22,
+          "e2e": 38.97869999999966
+        },
+        {
+          "q": "切换知识库后如何保证检索结果与当前集合一致？",
+          "docs": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "top5": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "queryMs": 14.82999999821186,
+          "dbMs": 8.65,
+          "e2e": 36.01539999999659
+        }
+      ]
+    },
+    {
+      "row": {
+        "label": "INT8 / WASM · b8",
+        "backend": "wasm",
+        "dtype": "q8",
+        "batchSize": 8,
+        "modelBytes": 24010842,
+        "loadMs": 3177.24,
+        "warmupMs": 77.79,
+        "embedMsPerChunk": 42.76,
+        "queryMs": 9.22,
+        "dbMs": 9.63,
+        "e2eMs": 32.85,
+        "importMs": 1205.07,
+        "writeMs": 687.53,
+        "refreshMs": 517.54,
+        "recall5": 0.9375,
+        "ndcg5": 0.9115,
+        "mrr": 0.9167,
+        "top5Overlap": 0.9417,
+        "note": "推荐默认"
+      },
+      "perQuery": [
+        {
+          "q": "WebGPU 不可用时应用会怎样处理？",
+          "docs": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "queryMs": 9.214999996125698,
+          "dbMs": 16.61,
+          "e2e": 43.58669999999984
+        },
+        {
+          "q": "INT8 量化后模型体积压缩了多少倍？",
+          "docs": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_incremental"
+          ],
+          "queryMs": 9.494999997317791,
+          "dbMs": 10.54,
+          "e2e": 36.74159999999392
+        },
+        {
+          "q": "seekdb 的向量索引使用什么算法？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_seekdb_vector",
+            "doc_seekdb_overview",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_seekdb_vector",
+            "doc_seekdb_overview",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "queryMs": 10.66499999910593,
+          "dbMs": 12.35,
+          "e2e": 37.434900000007474
+        },
+        {
+          "q": "中文全文检索使用哪个分词器？",
+          "docs": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector"
+          ],
+          "top5": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector"
+          ],
+          "queryMs": 8.625,
+          "dbMs": 10.33,
+          "e2e": 39.52969999999914
+        },
+        {
+          "q": "RRF 融合分数如何计算，为什么适合混合检索？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "queryMs": 9.344999998807907,
+          "dbMs": 10.94,
+          "e2e": 37.169999999998254
+        },
+        {
+          "q": "新导入的文档什么时候才能被搜索到？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "queryMs": 10.804999999701977,
+          "dbMs": 11.46,
+          "e2e": 37.048299999994924
+        },
+        {
+          "q": "bge-small-zh-v1.5 输出多少维向量？",
+          "docs": [
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_hnsw",
+            "doc_evaluation",
+            "doc_seekdb_vector"
+          ],
+          "top5": [
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_hnsw",
+            "doc_evaluation",
+            "doc_seekdb_vector"
+          ],
+          "queryMs": 9.975000001490116,
+          "dbMs": 10.86,
+          "e2e": 34.61160000000382
+        },
+        {
+          "q": "怎样评估量化前后的检索质量？",
+          "docs": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "queryMs": 9.884999997913837,
+          "dbMs": 11.18,
+          "e2e": 33.854899999991176
+        },
+        {
+          "q": "浏览器如何缓存模型文件以减少冷启动时间？",
+          "docs": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_incremental",
+            "doc_batching",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_incremental",
+            "doc_batching",
+            "doc_bge_model"
+          ],
+          "queryMs": 11.08500000089407,
+          "dbMs": 8.97,
+          "e2e": 35.025500000003376
+        },
+        {
+          "q": "文档分块为什么需要设置重叠？",
+          "docs": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 8.734999999403954,
+          "dbMs": 9.06,
+          "e2e": 32.55909999999858
+        },
+        {
+          "q": "批处理大小对 embedding 吞吐有什么影响？",
+          "docs": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "queryMs": 9.720000006258488,
+          "dbMs": 13.32,
+          "e2e": 40.4945000000007
+        },
+        {
+          "q": "端侧推理如何保护用户隐私？",
+          "docs": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "queryMs": 8.524999998509884,
+          "dbMs": 50.19,
+          "e2e": 90.74910000000091
+        },
+        {
+          "q": "冷启动和预热后的性能应该怎么报告？",
+          "docs": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_distractor_cooking"
+          ],
+          "top5": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_distractor_cooking"
+          ],
+          "queryMs": 14.119999997317791,
+          "dbMs": 11.59,
+          "e2e": 45.636599999998
+        },
+        {
+          "q": "HNSW 的 efConstruction 参数有什么作用？",
+          "docs": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_rag_flow"
+          ],
+          "queryMs": 10.905000001192093,
+          "dbMs": 17.87,
+          "e2e": 47.482600000003
+        },
+        {
+          "q": "Transformers.js 如何从本地目录加载模型？",
+          "docs": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_privacy",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_privacy",
+            "doc_rag_flow"
+          ],
+          "queryMs": 8.184999994933605,
+          "dbMs": 12.4,
+          "e2e": 42.30490000000282
+        },
+        {
+          "q": "seekdb 支持哪些部署方式？",
+          "docs": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_rag_flow",
+            "doc_chunking",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_rag_flow",
+            "doc_chunking",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 12.230000004172325,
+          "dbMs": 12.35,
+          "e2e": 43.975700000009965
+        },
+        {
+          "q": "为什么混合检索不能在前端分别取两路结果再拼合？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_session_state",
+            "doc_seekdb_fulltext",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_session_state",
+            "doc_seekdb_fulltext",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "queryMs": 12.740000002086163,
+          "dbMs": 13.27,
+          "e2e": 39.612999999997555
+        },
+        {
+          "q": "从导入文档到展示检索结果的完整流程是什么？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_evaluation",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_evaluation",
+            "doc_incremental"
+          ],
+          "queryMs": 13.120000004768372,
+          "dbMs": 10.48,
+          "e2e": 42.33070000000589
+        },
+        {
+          "q": "红烧肉需要炖多长时间？",
+          "docs": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 7.429999999701977,
+          "dbMs": 9.87,
+          "e2e": 31.343999999997322
+        },
+        {
+          "q": "京都秋天去哪里看枫叶比较好？",
+          "docs": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 7.875,
+          "dbMs": 8.46,
+          "e2e": 31.382999999987078
+        },
+        {
+          "q": "指数基金定投要注意什么？",
+          "docs": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_perf_metrics",
+            "doc_index_refresh"
+          ],
+          "top5": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_perf_metrics",
+            "doc_index_refresh"
+          ],
+          "queryMs": 7.78999999910593,
+          "dbMs": 10.82,
+          "e2e": 38.42870000000403
+        },
+        {
+          "q": "马拉松比赛前两周应该怎么训练？",
+          "docs": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_distractor_travel"
+          ],
+          "top5": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_distractor_travel"
+          ],
+          "queryMs": 8.784999996423721,
+          "dbMs": 8.9,
+          "e2e": 32.57369999999355
+        },
+        {
+          "q": "重复导入同一篇文档会不会产生重复结果？",
+          "docs": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_browser_cache"
+          ],
+          "top5": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_browser_cache"
+          ],
+          "queryMs": 10.114999994635582,
+          "dbMs": 9.47,
+          "e2e": 32.687999999994645
+        },
+        {
+          "q": "切换知识库后如何保证检索结果与当前集合一致？",
+          "docs": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "top5": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "queryMs": 10.775000005960464,
+          "dbMs": 9.18,
+          "e2e": 33.02060000000347
+        }
+      ]
+    },
+    {
+      "row": {
+        "label": "INT8 / WASM · b1",
+        "backend": "wasm",
+        "dtype": "q8",
+        "batchSize": 1,
+        "modelBytes": 24010842,
+        "loadMs": 5392.03,
+        "warmupMs": 78.58,
+        "embedMsPerChunk": 36.11,
+        "queryMs": 8.63,
+        "dbMs": 9.25,
+        "e2eMs": 33.38,
+        "importMs": 1443.94,
+        "writeMs": 819.88,
+        "refreshMs": 624.06,
+        "recall5": 0.9375,
+        "ndcg5": 0.906,
+        "mrr": 0.9097,
+        "top5Overlap": 0.925,
+        "note": "逐条写入"
+      },
+      "perQuery": [
+        {
+          "q": "WebGPU 不可用时应用会怎样处理？",
+          "docs": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "queryMs": 9.765000000596046,
+          "dbMs": 23.97,
+          "e2e": 51.84780000000319
+        },
+        {
+          "q": "INT8 量化后模型体积压缩了多少倍？",
+          "docs": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_incremental",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_incremental",
+            "doc_transformersjs"
+          ],
+          "queryMs": 10.560000002384186,
+          "dbMs": 11.38,
+          "e2e": 43.34100000000035
+        },
+        {
+          "q": "seekdb 的向量索引使用什么算法？",
+          "docs": [
+            "doc_seekdb_overview",
+            "doc_index_refresh",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "top5": [
+            "doc_seekdb_overview",
+            "doc_index_refresh",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "queryMs": 12.695000000298023,
+          "dbMs": 9.97,
+          "e2e": 39.36830000000191
+        },
+        {
+          "q": "中文全文检索使用哪个分词器？",
+          "docs": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector"
+          ],
+          "top5": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector"
+          ],
+          "queryMs": 10.064999997615814,
+          "dbMs": 10.16,
+          "e2e": 35.98309999999765
+        },
+        {
+          "q": "RRF 融合分数如何计算，为什么适合混合检索？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "queryMs": 10.905000001192093,
+          "dbMs": 10.41,
+          "e2e": 35.08680000000459
+        },
+        {
+          "q": "新导入的文档什么时候才能被搜索到？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "queryMs": 10.024999998509884,
+          "dbMs": 52.62,
+          "e2e": 83.88559999999416
+        },
+        {
+          "q": "bge-small-zh-v1.5 输出多少维向量？",
+          "docs": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "top5": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "queryMs": 11.630000002682209,
+          "dbMs": 11.24,
+          "e2e": 43.700499999991735
+        },
+        {
+          "q": "怎样评估量化前后的检索质量？",
+          "docs": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "queryMs": 11.840000003576279,
+          "dbMs": 13.72,
+          "e2e": 39.1249000000098
+        },
+        {
+          "q": "浏览器如何缓存模型文件以减少冷启动时间？",
+          "docs": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_incremental",
+            "doc_batching",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_incremental",
+            "doc_batching",
+            "doc_bge_model"
+          ],
+          "queryMs": 12.5,
+          "dbMs": 8.42,
+          "e2e": 41.08869999999297
+        },
+        {
+          "q": "文档分块为什么需要设置重叠？",
+          "docs": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 7.995000004768372,
+          "dbMs": 12.34,
+          "e2e": 38.39860000000044
+        },
+        {
+          "q": "批处理大小对 embedding 吞吐有什么影响？",
+          "docs": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 13.505000002682209,
+          "dbMs": 9.96,
+          "e2e": 38.20610000001034
+        },
+        {
+          "q": "端侧推理如何保护用户隐私？",
+          "docs": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 8.895000003278255,
+          "dbMs": 8.41,
+          "e2e": 45.90559999999823
+        },
+        {
+          "q": "冷启动和预热后的性能应该怎么报告？",
+          "docs": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_distractor_cooking"
+          ],
+          "top5": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_distractor_cooking"
+          ],
+          "queryMs": 11.725000001490116,
+          "dbMs": 10.42,
+          "e2e": 34.471100000009756
+        },
+        {
+          "q": "HNSW 的 efConstruction 参数有什么作用？",
+          "docs": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_rag_flow"
+          ],
+          "queryMs": 8.754999995231628,
+          "dbMs": 10.27,
+          "e2e": 31.349199999996927
+        },
+        {
+          "q": "Transformers.js 如何从本地目录加载模型？",
+          "docs": [
+            "doc_transformersjs",
+            "doc_browser_cache",
+            "doc_bge_model",
+            "doc_privacy",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_transformersjs",
+            "doc_browser_cache",
+            "doc_bge_model",
+            "doc_privacy",
+            "doc_rag_flow"
+          ],
+          "queryMs": 9.179999999701977,
+          "dbMs": 12.99,
+          "e2e": 35.14059999999881
+        },
+        {
+          "q": "seekdb 支持哪些部署方式？",
+          "docs": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 9.505000002682209,
+          "dbMs": 9.86,
+          "e2e": 33.52700000000186
+        },
+        {
+          "q": "为什么混合检索不能在前端分别取两路结果再拼合？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_session_state",
+            "doc_seekdb_fulltext",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_session_state",
+            "doc_seekdb_fulltext",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "queryMs": 10.91499999910593,
+          "dbMs": 10.27,
+          "e2e": 34.22149999999965
+        },
+        {
+          "q": "从导入文档到展示检索结果的完整流程是什么？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_evaluation",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_evaluation",
+            "doc_incremental"
+          ],
+          "queryMs": 10.504999995231628,
+          "dbMs": 10.02,
+          "e2e": 33.40899999999965
+        },
+        {
+          "q": "红烧肉需要炖多长时间？",
+          "docs": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 8.570000000298023,
+          "dbMs": 9.32,
+          "e2e": 30.15209999999206
+        },
+        {
+          "q": "京都秋天去哪里看枫叶比较好？",
+          "docs": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_seekdb_overview"
+          ],
+          "top5": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_seekdb_overview"
+          ],
+          "queryMs": 8.83500000089407,
+          "dbMs": 8.21,
+          "e2e": 31.249800000005052
+        },
+        {
+          "q": "指数基金定投要注意什么？",
+          "docs": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext"
+          ],
+          "top5": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext"
+          ],
+          "queryMs": 8.259999997913837,
+          "dbMs": 8.75,
+          "e2e": 30.999599999995553
+        },
+        {
+          "q": "马拉松比赛前两周应该怎么训练？",
+          "docs": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_distractor_travel"
+          ],
+          "top5": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_distractor_travel"
+          ],
+          "queryMs": 7.865000002086163,
+          "dbMs": 8.31,
+          "e2e": 31.158800000004703
+        },
+        {
+          "q": "重复导入同一篇文档会不会产生重复结果？",
+          "docs": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_evaluation"
+          ],
+          "top5": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_evaluation"
+          ],
+          "queryMs": 8.465000003576279,
+          "dbMs": 8.25,
+          "e2e": 31.868700000006356
+        },
+        {
+          "q": "切换知识库后如何保证检索结果与当前集合一致？",
+          "docs": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "top5": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "queryMs": 9.424999997019768,
+          "dbMs": 8.34,
+          "e2e": 32.79769999999553
+        }
+      ]
+    },
+    {
+      "row": {
+        "label": "FP16 / WebGPU · b16",
+        "backend": "webgpu",
+        "dtype": "fp16",
+        "batchSize": 16,
+        "modelBytes": 47497427,
+        "loadMs": 4748.62,
+        "warmupMs": 471.48,
+        "embedMsPerChunk": 50.22,
+        "queryMs": 24.45,
+        "dbMs": 10.64,
+        "e2eMs": 52.56,
+        "importMs": 1360.71,
+        "writeMs": 744.69,
+        "refreshMs": 616.02,
+        "recall5": 0.9792,
+        "ndcg5": 0.9239,
+        "mrr": 0.9201,
+        "top5Overlap": 0.975,
+        "note": "优先路径"
+      },
+      "perQuery": [
+        {
+          "q": "WebGPU 不可用时应用会怎样处理？",
+          "docs": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "queryMs": 21.700000002980232,
+          "dbMs": 15.67,
+          "e2e": 54.726800000004005
+        },
+        {
+          "q": "INT8 量化后模型体积压缩了多少倍？",
+          "docs": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_transformersjs"
+          ],
+          "queryMs": 23.79499999433756,
+          "dbMs": 10.55,
+          "e2e": 49.05380000002333
+        },
+        {
+          "q": "seekdb 的向量索引使用什么算法？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "queryMs": 20.549999997019768,
+          "dbMs": 11.07,
+          "e2e": 49.26360000000568
+        },
+        {
+          "q": "中文全文检索使用哪个分词器？",
+          "docs": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_batching",
+            "doc_seekdb_overview"
+          ],
+          "top5": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_batching",
+            "doc_seekdb_overview"
+          ],
+          "queryMs": 19.94999999552965,
+          "dbMs": 10.93,
+          "e2e": 47.9831000000122
+        },
+        {
+          "q": "RRF 融合分数如何计算，为什么适合混合检索？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "queryMs": 22.060000002384186,
+          "dbMs": 10.02,
+          "e2e": 48.93960000001243
+        },
+        {
+          "q": "新导入的文档什么时候才能被搜索到？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "queryMs": 22.265000000596046,
+          "dbMs": 10.52,
+          "e2e": 50.242299999983516
+        },
+        {
+          "q": "bge-small-zh-v1.5 输出多少维向量？",
+          "docs": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "top5": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "queryMs": 22.984999999403954,
+          "dbMs": 10.62,
+          "e2e": 50.702900000003865
+        },
+        {
+          "q": "怎样评估量化前后的检索质量？",
+          "docs": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "queryMs": 21.375,
+          "dbMs": 10.49,
+          "e2e": 49.292399999976624
+        },
+        {
+          "q": "浏览器如何缓存模型文件以减少冷启动时间？",
+          "docs": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching",
+            "doc_incremental",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching",
+            "doc_incremental",
+            "doc_bge_model"
+          ],
+          "queryMs": 21.08500000089407,
+          "dbMs": 11.34,
+          "e2e": 49.42750000001979
+        },
+        {
+          "q": "文档分块为什么需要设置重叠？",
+          "docs": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 21.13000000268221,
+          "dbMs": 10.87,
+          "e2e": 49.12579999997979
+        },
+        {
+          "q": "批处理大小对 embedding 吞吐有什么影响？",
+          "docs": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "queryMs": 23.405000001192093,
+          "dbMs": 10.69,
+          "e2e": 52.5166999999783
+        },
+        {
+          "q": "端侧推理如何保护用户隐私？",
+          "docs": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "queryMs": 22.155000001192093,
+          "dbMs": 11.17,
+          "e2e": 50.30549999998766
+        },
+        {
+          "q": "冷启动和预热后的性能应该怎么报告？",
+          "docs": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 21.594999998807907,
+          "dbMs": 11,
+          "e2e": 49.088899999973364
+        },
+        {
+          "q": "HNSW 的 efConstruction 参数有什么作用？",
+          "docs": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_webgpu_backend"
+          ],
+          "top5": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_webgpu_backend"
+          ],
+          "queryMs": 17.945000000298023,
+          "dbMs": 11.3,
+          "e2e": 47.305500000016764
+        },
+        {
+          "q": "Transformers.js 如何从本地目录加载模型？",
+          "docs": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_rag_flow",
+            "doc_privacy"
+          ],
+          "top5": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_rag_flow",
+            "doc_privacy"
+          ],
+          "queryMs": 21.484999999403954,
+          "dbMs": 14.79,
+          "e2e": 58.58910000001197
+        },
+        {
+          "q": "seekdb 支持哪些部署方式？",
+          "docs": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 24.70499999821186,
+          "dbMs": 10.64,
+          "e2e": 53.12260000000242
+        },
+        {
+          "q": "为什么混合检索不能在前端分别取两路结果再拼合？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_session_state",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_session_state",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "queryMs": 24.024999998509884,
+          "dbMs": 11.1,
+          "e2e": 53.53729999999632
+        },
+        {
+          "q": "从导入文档到展示检索结果的完整流程是什么？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_incremental"
+          ],
+          "queryMs": 22.63000000268221,
+          "dbMs": 11.38,
+          "e2e": 51.22179999999935
+        },
+        {
+          "q": "红烧肉需要炖多长时间？",
+          "docs": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 19.38000000268221,
+          "dbMs": 10.32,
+          "e2e": 49.7274000000034
+        },
+        {
+          "q": "京都秋天去哪里看枫叶比较好？",
+          "docs": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 22.604999996721745,
+          "dbMs": 10.77,
+          "e2e": 49.88730000000214
+        },
+        {
+          "q": "指数基金定投要注意什么？",
+          "docs": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 20.589999996125698,
+          "dbMs": 11.53,
+          "e2e": 49.47219999998924
+        },
+        {
+          "q": "马拉松比赛前两周应该怎么训练？",
+          "docs": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_distractor_travel"
+          ],
+          "top5": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_distractor_travel"
+          ],
+          "queryMs": 20.554999999701977,
+          "dbMs": 10.66,
+          "e2e": 49.53520000001299
+        },
+        {
+          "q": "重复导入同一篇文档会不会产生重复结果？",
+          "docs": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_session_state",
+            "doc_index_refresh",
+            "doc_browser_cache"
+          ],
+          "top5": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_session_state",
+            "doc_index_refresh",
+            "doc_browser_cache"
+          ],
+          "queryMs": 21.929999999701977,
+          "dbMs": 11.36,
+          "e2e": 50.82060000000638
+        },
+        {
+          "q": "切换知识库后如何保证检索结果与当前集合一致？",
+          "docs": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "top5": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "queryMs": 22.054999999701977,
+          "dbMs": 9.49,
+          "e2e": 48.45629999999073
+        }
+      ]
+    },
+    {
+      "row": {
+        "label": "FP16 / WebGPU · b1",
+        "backend": "webgpu",
+        "dtype": "fp16",
+        "batchSize": 1,
+        "modelBytes": 47497427,
+        "loadMs": 4250.34,
+        "warmupMs": 478.15,
+        "embedMsPerChunk": 51.99,
+        "queryMs": 23.54,
+        "dbMs": 10.13,
+        "e2eMs": 51.08,
+        "importMs": 1112.07,
+        "writeMs": 693.85,
+        "refreshMs": 418.21,
+        "recall5": 0.9792,
+        "ndcg5": 0.9239,
+        "mrr": 0.9201,
+        "top5Overlap": 0.975,
+        "note": "单条查询"
+      },
+      "perQuery": [
+        {
+          "q": "WebGPU 不可用时应用会怎样处理？",
+          "docs": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_wasm_backend",
+            "doc_webgpu_backend",
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching"
+          ],
+          "queryMs": 22.58500000089407,
+          "dbMs": 18.16,
+          "e2e": 62.07380000001285
+        },
+        {
+          "q": "INT8 量化后模型体积压缩了多少倍？",
+          "docs": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_int8_quant",
+            "doc_evaluation",
+            "doc_bge_model",
+            "doc_perf_metrics",
+            "doc_transformersjs"
+          ],
+          "queryMs": 24.155000001192093,
+          "dbMs": 10.91,
+          "e2e": 56.02629999999772
+        },
+        {
+          "q": "seekdb 的向量索引使用什么算法？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_seekdb_overview",
+            "doc_seekdb_vector",
+            "doc_hnsw",
+            "doc_seekdb_fulltext"
+          ],
+          "queryMs": 19.12000000476837,
+          "dbMs": 9.59,
+          "e2e": 46.28849999999511
+        },
+        {
+          "q": "中文全文检索使用哪个分词器？",
+          "docs": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_batching",
+            "doc_seekdb_overview"
+          ],
+          "top5": [
+            "doc_seekdb_fulltext",
+            "doc_bge_model",
+            "doc_hybrid_rrf",
+            "doc_batching",
+            "doc_seekdb_overview"
+          ],
+          "queryMs": 18.739999994635582,
+          "dbMs": 10.43,
+          "e2e": 45.86269999999786
+        },
+        {
+          "q": "RRF 融合分数如何计算，为什么适合混合检索？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_evaluation",
+            "doc_rag_flow",
+            "doc_batching"
+          ],
+          "queryMs": 19.53999999910593,
+          "dbMs": 10.13,
+          "e2e": 44.46350000001257
+        },
+        {
+          "q": "新导入的文档什么时候才能被搜索到？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_seekdb_vector",
+            "doc_chunking",
+            "doc_incremental"
+          ],
+          "queryMs": 19.964999996125698,
+          "dbMs": 10.33,
+          "e2e": 47.291499999992084
+        },
+        {
+          "q": "bge-small-zh-v1.5 输出多少维向量？",
+          "docs": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "top5": [
+            "doc_bge_model",
+            "doc_hnsw",
+            "doc_rag_flow",
+            "doc_seekdb_vector",
+            "doc_evaluation"
+          ],
+          "queryMs": 19.884999997913837,
+          "dbMs": 12.34,
+          "e2e": 49.51110000000335
+        },
+        {
+          "q": "怎样评估量化前后的检索质量？",
+          "docs": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "top5": [
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_chunking",
+            "doc_perf_metrics",
+            "doc_rag_flow"
+          ],
+          "queryMs": 19.445000000298023,
+          "dbMs": 10.11,
+          "e2e": 47.36030000000028
+        },
+        {
+          "q": "浏览器如何缓存模型文件以减少冷启动时间？",
+          "docs": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching",
+            "doc_incremental",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_browser_cache",
+            "doc_transformersjs",
+            "doc_batching",
+            "doc_incremental",
+            "doc_bge_model"
+          ],
+          "queryMs": 20.16999999433756,
+          "dbMs": 9.76,
+          "e2e": 46.94309999997495
+        },
+        {
+          "q": "文档分块为什么需要设置重叠？",
+          "docs": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_chunking",
+            "doc_browser_cache",
+            "doc_incremental",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 19.775000005960464,
+          "dbMs": 10.66,
+          "e2e": 44.85510000001523
+        },
+        {
+          "q": "批处理大小对 embedding 吞吐有什么影响？",
+          "docs": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "top5": [
+            "doc_batching",
+            "doc_evaluation",
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_bge_model"
+          ],
+          "queryMs": 22.17000000178814,
+          "dbMs": 10.13,
+          "e2e": 46.439099999988684
+        },
+        {
+          "q": "端侧推理如何保护用户隐私？",
+          "docs": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_webgpu_backend",
+            "doc_privacy",
+            "doc_bge_model",
+            "doc_rag_flow",
+            "doc_transformersjs"
+          ],
+          "queryMs": 19.774999998509884,
+          "dbMs": 11.16,
+          "e2e": 47.64490000001388
+        },
+        {
+          "q": "冷启动和预热后的性能应该怎么报告？",
+          "docs": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "top5": [
+            "doc_perf_metrics",
+            "doc_browser_cache",
+            "doc_wasm_backend",
+            "doc_evaluation",
+            "doc_transformersjs"
+          ],
+          "queryMs": 20.240000002086163,
+          "dbMs": 10.19,
+          "e2e": 76.64569999999367
+        },
+        {
+          "q": "HNSW 的 efConstruction 参数有什么作用？",
+          "docs": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_webgpu_backend"
+          ],
+          "top5": [
+            "doc_hnsw",
+            "doc_seekdb_vector",
+            "doc_evaluation",
+            "doc_wasm_backend",
+            "doc_webgpu_backend"
+          ],
+          "queryMs": 18.194999992847443,
+          "dbMs": 12.21,
+          "e2e": 46.21350000001257
+        },
+        {
+          "q": "Transformers.js 如何从本地目录加载模型？",
+          "docs": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_rag_flow",
+            "doc_privacy"
+          ],
+          "top5": [
+            "doc_transformersjs",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_rag_flow",
+            "doc_privacy"
+          ],
+          "queryMs": 22.78999999910593,
+          "dbMs": 9.51,
+          "e2e": 46.126000000018394
+        },
+        {
+          "q": "seekdb 支持哪些部署方式？",
+          "docs": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_seekdb_overview",
+            "doc_privacy",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 23.515000000596046,
+          "dbMs": 14.48,
+          "e2e": 71.4832999999926
+        },
+        {
+          "q": "为什么混合检索不能在前端分别取两路结果再拼合？",
+          "docs": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_session_state",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "top5": [
+            "doc_hybrid_rrf",
+            "doc_seekdb_fulltext",
+            "doc_session_state",
+            "doc_incremental",
+            "doc_webgpu_backend"
+          ],
+          "queryMs": 23.990000002086163,
+          "dbMs": 9.78,
+          "e2e": 54.82070000001113
+        },
+        {
+          "q": "从导入文档到展示检索结果的完整流程是什么？",
+          "docs": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_incremental"
+          ],
+          "top5": [
+            "doc_index_refresh",
+            "doc_session_state",
+            "doc_chunking",
+            "doc_rag_flow",
+            "doc_incremental"
+          ],
+          "queryMs": 22.640000000596046,
+          "dbMs": 10.34,
+          "e2e": 54.75320000000647
+        },
+        {
+          "q": "红烧肉需要炖多长时间？",
+          "docs": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "top5": [
+            "doc_distractor_cooking",
+            "doc_distractor_sports",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_wasm_backend"
+          ],
+          "queryMs": 18.464999996125698,
+          "dbMs": 8.16,
+          "e2e": 44.498300000006566
+        },
+        {
+          "q": "京都秋天去哪里看枫叶比较好？",
+          "docs": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_distractor_travel",
+            "doc_evaluation",
+            "doc_int8_quant",
+            "doc_hnsw",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 22.79500000178814,
+          "dbMs": 10.78,
+          "e2e": 61.2728000000061
+        },
+        {
+          "q": "指数基金定投要注意什么？",
+          "docs": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext",
+            "doc_perf_metrics"
+          ],
+          "top5": [
+            "doc_distractor_finance",
+            "doc_evaluation",
+            "doc_browser_cache",
+            "doc_seekdb_fulltext",
+            "doc_perf_metrics"
+          ],
+          "queryMs": 21.770000003278255,
+          "dbMs": 9.65,
+          "e2e": 47.88079999998445
+        },
+        {
+          "q": "马拉松比赛前两周应该怎么训练？",
+          "docs": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_distractor_travel"
+          ],
+          "top5": [
+            "doc_distractor_sports",
+            "doc_bge_model",
+            "doc_browser_cache",
+            "doc_evaluation",
+            "doc_distractor_travel"
+          ],
+          "queryMs": 23.094999998807907,
+          "dbMs": 11.36,
+          "e2e": 51.677700000000186
+        },
+        {
+          "q": "重复导入同一篇文档会不会产生重复结果？",
+          "docs": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_session_state",
+            "doc_index_refresh",
+            "doc_browser_cache"
+          ],
+          "top5": [
+            "doc_incremental",
+            "doc_chunking",
+            "doc_session_state",
+            "doc_index_refresh",
+            "doc_browser_cache"
+          ],
+          "queryMs": 23.594999998807907,
+          "dbMs": 12.19,
+          "e2e": 52.18959999998333
+        },
+        {
+          "q": "切换知识库后如何保证检索结果与当前集合一致？",
+          "docs": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "top5": [
+            "doc_session_state",
+            "doc_incremental",
+            "doc_hybrid_rrf",
+            "doc_rag_flow",
+            "doc_chunking"
+          ],
+          "queryMs": 24.75,
+          "dbMs": 9.86,
+          "e2e": 52.60550000000512
+        }
+      ]
+    }
+  ]
+}

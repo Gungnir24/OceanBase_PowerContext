@@ -1,0 +1,47 @@
+{
+  "name": "stepfun-edge-kb",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "StepFun 端侧 AI 知识库：浏览器本地向量化 + seekdb 混合检索",
+  "scripts": {
+    "dev": "concurrently -k -n web,api -c cyan,green \"vite --host 127.0.0.1\" \"tsx watch server/index.ts\"",
+    "dev:web": "vite --host 127.0.0.1",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "start": "tsx server/index.ts --prod",
+    "setup": "node scripts/fetch-models.mjs",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f seekdb",
+    "verify": "node scripts/verify.mjs",
+    "bench": "tsx scripts/bench.mts",
+    "bench:summary": "tsx scripts/summarize-bench.mts"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "3.7.6",
+    "@webgpu/types": "^0.1.74",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "marked": "^18.1.2",
+    "seekdb": "1.4.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "playwright-core": "^1.52.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

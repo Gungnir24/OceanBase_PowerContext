@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+
+# Model weights are downloaded by `npm run setup`; keep only the manifest.
+public/models/*
+!public/models/manifest.json
+!public/models/.gitkeep
+
+# Temporary benchmark output outside the committed summary.
+benchmarks/results/*.tmp
